@@ -498,6 +498,127 @@ function autorizacaoMenor(senha: any) {
   doc.save('autorizacao_menor_' + (puxador.nomeCompleto || senha.numero) + '.pdf');
 }
 
+function imprimirRelatorioSenhas() {
+  if (!selectedLote) return;
+
+  const doc = new jsPDF({
+    orientation: "landscape",
+    unit: "mm",
+    format: "a4"
+  });
+
+  const pageWidth = 297;
+  const pageHeight = 210;
+  const marginX = 10;
+  const marginY = 10;
+  const colCount = 5;
+  const rowCount = 4;
+  
+  const colWidth = (pageWidth - 2 * marginX) / colCount;
+  const rowHeight = (pageHeight - marginY - 45) / rowCount;
+  
+  let currentSenhaIndex = 0;
+  
+  while (currentSenhaIndex < filteredSenhas.length || currentSenhaIndex === 0) {
+    if (currentSenhaIndex > 0) {
+      doc.addPage();
+    }
+    
+    // Cabeçalho
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("PREFEITURA MUNICIPAL DE LAGOA DOS PATOS", pageWidth / 2, 12, { align: "center" });
+    
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text("PRAÇA 31 DE MARÇO, 111 - CENTRO - TEL. (38) 3745-1239", pageWidth / 2, 17, { align: "center" });
+    
+    doc.setLineWidth(0.5);
+    doc.line(marginX, 20, pageWidth - marginX, 20);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("VAQUEJADA NACIONAL DE LAGOA DOS PATOS-2025", pageWidth / 2, 26, { align: "center" });
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "italic");
+    doc.text("08 a 11 de maio - Parque Pedro Pereira Durães", pageWidth / 2, 31, { align: "center" });
+    
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("MAPA DE SENHAS - CATEGORIA MUNICIPAL", pageWidth / 2, 37, { align: "center" });
+    
+    const startY = 42;
+    
+    for (let r = 0; r < rowCount; r++) {
+      for (let c = 0; c < colCount; c++) {
+        const cellX = marginX + c * colWidth;
+        const cellY = startY + r * rowHeight;
+        const centerX = cellX + colWidth / 2;
+        
+        doc.setDrawColor(0);
+        doc.setLineWidth(0.2);
+        
+        if (currentSenhaIndex < filteredSenhas.length) {
+            const senha = filteredSenhas[currentSenhaIndex];
+            const puxador = data.vaqueiros.find((v: any) => v.id === senha.puxadorId);
+            const animalP = data.animais.find((a: any) => a.id === senha.animalPuxadorId);
+            
+            doc.rect(cellX, cellY, colWidth, rowHeight);
+            
+            doc.setFontSize(28);
+            doc.setFont("helvetica", "bold");
+            doc.text(`${senha.numero}`, centerX, cellY + 13, { align: "center" });
+            
+            doc.line(cellX, cellY + 18, cellX + colWidth, cellY + 18);
+            
+            if (puxador) {
+                let yOffset = cellY + 23;
+                
+                const words = (puxador.apelido || "").toUpperCase().split(" ");
+                const shortName = words.length > 2 ? `${words[0]} ${words[words.length - 1]}` : words.join(" ");
+                
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(10);
+                doc.text(shortName.substring(0, 25), centerX, yOffset, { align: "center" });
+                yOffset += 4.5;
+                
+                doc.setFontSize(8);
+                const desc = [];
+                if (puxador.nomeCompleto) desc.push(`${puxador.nomeCompleto}`);
+                if (puxador.dataNascimento) desc.push(`${verIdade(puxador.dataNascimento)} anos`);
+                
+                const line2 = desc.join(" | ");
+                if (line2) {
+                    doc.text(line2, centerX, yOffset, { align: "center" });
+                    yOffset += 4.5;
+                }
+                
+                if (animalP) {
+                    doc.setFont("helvetica", "italic");
+                    const animalNome = animalP.nome.toUpperCase().substring(0, 16);
+                    doc.text(`🏇 ${animalNome}`, centerX, yOffset, { align: "center" });
+                }
+            } else {
+                doc.setFillColor(120, 120, 120);
+                doc.rect(cellX, cellY + 18, colWidth, rowHeight - 18, 'F');
+                doc.rect(cellX, cellY + 18, colWidth, rowHeight - 18);
+            }
+        } else {
+            doc.setFillColor(240, 240, 240);
+            doc.rect(cellX, cellY, colWidth, rowHeight, 'FD');
+        }
+        
+        currentSenhaIndex++;
+      }
+    }
+    
+    if (currentSenhaIndex >= filteredSenhas.length) break;
+  }
+  
+  doc.save(`mapa_senhas_${selectedLote?.inicio}_ate_${selectedLote?.fim}.pdf`);
+}
+
 // Derived: check if selected puxador is minor without responsible
 let puxadorMenorSemResponsavel = $derived(() => {
   if (!puxadorId) return false;
@@ -550,6 +671,7 @@ let puxadorMenorSemResponsavel = $derived(() => {
     <div class="batch-detail-header">
         <button class="premium-button secondary" onclick={() => selectedLote = null}>← Voltar aos Lotes</button>
         <h2>Sequência #{selectedLote.inicio} - #{selectedLote.fim} ({selectedLote.dataCompeticao})</h2>
+        <button class="premium-button secondary" onclick={imprimirRelatorioSenhas}>Imprimir</button>
     </div>
 
     <div class="flex flex-wrap gap-6 p-4">
