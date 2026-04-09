@@ -1,4 +1,5 @@
-import { integer, sqliteTable, text, real } from 'drizzle-orm/sqlite-core';
+import { integer, sqliteTable, text, real, primaryKey } from 'drizzle-orm/sqlite-core';
+import { relations } from 'drizzle-orm';
 
 export const task = sqliteTable('task', {
 	id: text('id')
@@ -47,11 +48,21 @@ export const animais = sqliteTable('animais', {
 	mae: text('mae'),
 	valorReal: real('valor_real'),
 	vaqueiroId: text('vaqueiro_id')
-		.notNull()
 		.references(() => vaqueiros.id),
 	createdAt: integer('created_at', { mode: 'timestamp' })
 		.$defaultFn(() => new Date())
 });
+
+export const vaqueirosAnimais = sqliteTable('vaqueiros_animais', {
+	vaqueiroId: text('vaqueiro_id')
+		.notNull()
+		.references(() => vaqueiros.id, { onDelete: 'cascade' }),
+	animalId: text('animal_id')
+		.notNull()
+		.references(() => animais.id, { onDelete: 'cascade' }),
+}, (t) => ({
+	pk: primaryKey({ columns: [t.vaqueiroId, t.animalId] }),
+}));
 
 export const lotes = sqliteTable('lotes', {
 	id: text('id')
@@ -84,5 +95,24 @@ export const senhas = sqliteTable('senhas', {
 	createdAt: integer('created_at', { mode: 'timestamp' })
 		.$defaultFn(() => new Date())
 });
+
+export const vaqueirosRelations = relations(vaqueiros, ({ many }) => ({
+	animaisAtribuidos: many(vaqueirosAnimais),
+}));
+
+export const animaisRelations = relations(animais, ({ many }) => ({
+	vaqueirosAtribuidos: many(vaqueirosAnimais),
+}));
+
+export const vaqueirosAnimaisRelations = relations(vaqueirosAnimais, ({ one }) => ({
+	vaqueiro: one(vaqueiros, {
+		fields: [vaqueirosAnimais.vaqueiroId],
+		references: [vaqueiros.id],
+	}),
+	animal: one(animais, {
+		fields: [vaqueirosAnimais.animalId],
+		references: [animais.id],
+	}),
+}));
 
 export * from './auth.schema';

@@ -1,0 +1,1 @@
+DB Check Error: SQLITE_ERROR: no such column: table

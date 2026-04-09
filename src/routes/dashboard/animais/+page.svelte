@@ -4,22 +4,33 @@
   let editingAnimal = $state<any>(null);
   let search = $state("");
   let loading = $state(false);
+  let selectedVaqueiros = $state<string[]>([]);
 
   let filteredAnimais = $derived(
     (data.animais || []).filter(a => 
         a.nome.toLowerCase().includes(search.toLowerCase()) || 
-        (a.vaqueiroNome && a.vaqueiroNome.toLowerCase().includes(search.toLowerCase()))
+        (a.vaqueiros && a.vaqueiros.some(v => v.nomeCompleto.toLowerCase().includes(search.toLowerCase())))
     )
   );
 
+  function toggleVaqueiro(id: string) {
+    if (selectedVaqueiros.includes(id)) {
+      selectedVaqueiros = selectedVaqueiros.filter(oid => oid !== id);
+    } else if (id) {
+      selectedVaqueiros = [...selectedVaqueiros, id];
+    }
+  }
+
   function startEdit(a: any) {
     editingAnimal = a;
+    selectedVaqueiros = a.vaqueiros ? a.vaqueiros.map((v: any) => v.id) : [];
     showForm = true;
   }
 
   function closeForm() {
     showForm = false;
     editingAnimal = null;
+    selectedVaqueiros = [];
   }
 
   async function handleSubmit(e: SubmitEvent) {
@@ -73,15 +84,39 @@
               <option value="esteirador">Esteirador</option>
             </select>
           </div>
-          <div class="input-group">
-            <label for="vaqueiroResponsavel">Vaqueiro Responsável *</label>
-            <select id="vaqueiroResponsavel" name="vaqueiroId" value={editingAnimal?.vaqueiroId || ''} required class="premium-input">
-              <option value="">Selecione o Vaqueiro</option>
-              {#each (data.vaqueiros || []) as v}
-                <option value={v.id}>{v.nomeCompleto} ({v.cpf})</option>
+          
+          <div class="input-group span-2">
+            <label>Vaqueiros Responsáveis</label>
+            <div class="multi-select-container premium-input">
+              <div class="tags-list">
+                {#each selectedVaqueiros as vId}
+                  {@const vaqueiro = data.vaqueiros.find(v => v.id === vId)}
+                  {#if vaqueiro}
+                    <span class="tag">
+                      {vaqueiro.nomeCompleto}
+                      <button type="button" onclick={() => toggleVaqueiro(vId)}>×</button>
+                    </span>
+                  {/if}
+                {/each}
+              </div>
+              <select 
+                class="hidden-select" 
+                onchange={(e) => toggleVaqueiro(e.currentTarget.value)}
+                value=""
+              >
+                <option value="">+ Vincular Vaqueiro...</option>
+                {#each data.vaqueiros as v}
+                  {#if !selectedVaqueiros.includes(v.id)}
+                    <option value={v.id}>{v.nomeCompleto} ({v.cpf})</option>
+                  {/if}
+                {/each}
+              </select>
+              {#each selectedVaqueiros as vId}
+                <input type="hidden" name="vaqueiroIds" value={vId} />
               {/each}
-            </select>
+            </div>
           </div>
+
           <div class="input-group">
             <label for="pedigreePai">Pai (Pedigree)</label>
             <input id="pedigreePai" name="pai" value={editingAnimal?.pai || ''} class="premium-input" />
@@ -136,7 +171,15 @@
               </div>
             </td>
             <td>{a.raca || '-'} / {a.cor || '-'}</td>
-            <td>{a.vaqueiroNome}</td>
+            <td>
+              <div class="name-cell">
+                {#each (a.vaqueiros || []) as v}
+                  <span class="main-name text-xs">{v.nomeCompleto}</span>
+                {:else}
+                  <span class="text-muted text-xs">-</span>
+                {/each}
+              </div>
+            </td>
             <td>
               <div class="row-actions">
                 <button class="edit-btn" onclick={() => startEdit(a)}>✏️</button>
@@ -180,6 +223,51 @@
   .edit-btn, .delete-btn { background: transparent; border: none; cursor: pointer; opacity: 0.6; transition: 0.2s; font-size: 1.1rem; }
   .edit-btn:hover, .delete-btn:hover { opacity: 1; transform: scale(1.1); }
   
-  .form-actions { display: flex; gap: 1rem; margin-top: 1rem; align-items: center; }
   .error-text { color: #ef4444; margin-top: 1rem; font-size: 0.9rem; }
+
+  .multi-select-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    min-height: 50px;
+  }
+  .tags-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .tag {
+    background: var(--primary);
+    color: #fff;
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 600;
+  }
+  .tag button {
+    background: none;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 0;
+    line-height: 1;
+  }
+  .hidden-select {
+    background: transparent;
+    border: 1px dashed var(--border-glass);
+    color: var(--text-muted);
+    padding: 0.3rem;
+    border-radius: 4px;
+    cursor: pointer;
+    outline: none;
+  }
+  .hidden-select:hover {
+    border-color: var(--primary);
+    color: var(--text-main);
+  }
 </style>

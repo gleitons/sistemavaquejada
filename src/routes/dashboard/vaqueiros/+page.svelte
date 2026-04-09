@@ -12,6 +12,15 @@
   let grauParentesco = $state("");
   let grauOutro = $state("");
   let dataNascimentoVal = $state("");
+  let selectedAnimais = $state<string[]>([]);
+
+  function toggleAnimal(id: string) {
+    if (selectedAnimais.includes(id)) {
+      selectedAnimais = selectedAnimais.filter(oid => oid !== id);
+    } else if (id) {
+      selectedAnimais = [...selectedAnimais, id];
+    }
+  }
 
   let filteredVaqueiros = $derived(
     (data.vaqueiros || []).filter(v => 
@@ -48,6 +57,7 @@
     grauParentesco = v.grauParentesco || "";
     grauOutro = "";
     dataNascimentoVal = v.dataNascimento || "";
+    selectedAnimais = v.animais ? v.animais.map((a: any) => a.id) : [];
     // If grauParentesco is custom (not in list), set grauParentesco to "outro" and grauOutro to the value
     const opcoesPadrao = ['mae', 'pai', 'avo', 'avó', 'tio', 'tia', 'tutor'];
     if (v.grauParentesco && !opcoesPadrao.includes(v.grauParentesco)) {
@@ -64,6 +74,7 @@
     grauParentesco = "";
     grauOutro = "";
     dataNascimentoVal = "";
+    selectedAnimais = [];
   }
 
   async function handleSubmit(e: SubmitEvent) {
@@ -196,6 +207,38 @@
 
             <input type="hidden" name="grauParentesco" value={grauParentesco === 'outro' ? grauOutro : grauParentesco} />
           {/if}
+
+          <div class="input-group span-2">
+            <label>Animais Vinculados</label>
+            <div class="multi-select-container premium-input">
+              <div class="tags-list">
+                {#each selectedAnimais as animalId}
+                  {@const animal = data.animais.find(a => a.id === animalId)}
+                  {#if animal}
+                    <span class="tag">
+                      {animal.nome}
+                      <button type="button" onclick={() => toggleAnimal(animalId)}>×</button>
+                    </span>
+                  {/if}
+                {/each}
+              </div>
+              <select 
+                class="hidden-select" 
+                onchange={(e) => toggleAnimal(e.currentTarget.value)}
+                value=""
+              >
+                <option value="">+ Vincular Animal...</option>
+                {#each data.animais as a}
+                  {#if !selectedAnimais.includes(a.id)}
+                    <option value={a.id}>{a.nome} ({a.categoria})</option>
+                  {/if}
+                {/each}
+              </select>
+              {#each selectedAnimais as animalId}
+                <input type="hidden" name="animalIds" value={animalId} />
+              {/each}
+            </div>
+          </div>
         </div>
         
         {#if form?.error}
@@ -285,4 +328,50 @@
   
   .form-actions { display: flex; gap: 1rem; margin-top: 2rem; align-items: center; }
   .error-text { color: #ef4444; margin-top: 1rem; font-size: 0.9rem; }
+
+  .multi-select-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    min-height: 50px;
+  }
+  .tags-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .tag {
+    background: var(--primary);
+    color: #fff;
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 600;
+  }
+  .tag button {
+    background: none;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 0;
+    line-height: 1;
+  }
+  .hidden-select {
+    background: transparent;
+    border: 1px dashed var(--border-glass);
+    color: var(--text-muted);
+    padding: 0.3rem;
+    border-radius: 4px;
+    cursor: pointer;
+    outline: none;
+  }
+  .hidden-select:hover {
+    border-color: var(--primary);
+    color: var(--text-main);
+  }
 </style>
