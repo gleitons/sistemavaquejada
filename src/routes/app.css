@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+:root {
+  --primary: #c27803;
+  --primary-hover: #b46d03;
+  --bg-dark: #121212;
+  --bg-card: rgba(255, 255, 255, 0.05);
+  --bg-glass: rgba(18, 18, 18, 0.7);
+  --text-main: #f3f4f6;
+  --text-muted: #9ca3af;
+  --border-glass: rgba(255, 255, 255, 0.1);
+  --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body {
+  margin: 0;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  overflow-x: hidden;
+}
+
+.premium-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-glass);
+  border-radius: 1.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.premium-input {
+  
+  border: 1px solid var(--border-glass);
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  
+  transition: var(--transition-fast);
+  outline: none;
+}
+
+.premium-input:focus {
+  border-color: var(--primary);
+  background: rgba(179, 179, 179, 0.37);
+  box-shadow: 0 0 0 4px rgba(194, 120, 3, 0.1);
+  color: black;
+}
+
+.premium-button {
+  background: linear-gradient(135deg, var(--primary), #e68d00);
+  color: white;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.premium-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px -5px rgba(194, 120, 3, 0.4);
+}
+
+.premium-button:active {
+  transform: translateY(0);
+}
+
+/* Background image mask */
+.app-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  background-size: cover;
+  background-position: center;
+}
+
+.app-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(18, 18, 18, 0.4), rgba(18, 18, 18, 0.95));
+}
