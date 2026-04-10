@@ -86,7 +86,7 @@
           </div>
           
           <div class="input-group span-2">
-            <label>Vaqueiros Responsáveis</label>
+            <label for="vaqueiros-select">Vaqueiros Responsáveis</label>
             <div class="multi-select-container premium-input">
               <div class="tags-list">
                 {#each selectedVaqueiros as vId}
@@ -100,6 +100,7 @@
                 {/each}
               </div>
               <select 
+                id="vaqueiros-select"
                 class="hidden-select" 
                 onchange={(e) => toggleVaqueiro(e.currentTarget.value)}
                 value=""
@@ -257,10 +258,10 @@
     padding: 0;
     line-height: 1;
   }
-  .hidden-select {
-    background: transparent;
+  /* .hidden-select {
+    background: white;
     border: 1px dashed var(--border-glass);
-    color: var(--text-muted);
+    color: black;
     padding: 0.3rem;
     border-radius: 4px;
     cursor: pointer;
@@ -268,6 +269,7 @@
   }
   .hidden-select:hover {
     border-color: var(--primary);
-    color: var(--text-main);
-  }
+    background: white;
+    color: black;
+  } */
 </style>

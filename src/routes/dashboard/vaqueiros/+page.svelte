@@ -1,6 +1,8 @@
 <script lang="ts">
   import { invalidateAll } from '$app/navigation';
-  let { data, form } = $props();
+  import type { PageData } from './$types';
+  
+  let { data, form }: { data: PageData, form: any } = $props();
   
   let showForm = $state(false);
   let editingVaqueiro = $state<any>(null);
@@ -33,7 +35,8 @@
   // Check if current vaqueiro being edited/created is minor
   let isMenorForm = $derived(() => {
     if (!dataNascimentoVal) return false;
-    const nasc = new Date(dataNascimentoVal);
+    const [year, month, day] = dataNascimentoVal.split('-').map(Number);
+    const nasc = new Date(year, month - 1, day);
     const hoje = new Date();
     let idade = hoje.getFullYear() - nasc.getFullYear();
     const m = hoje.getMonth() - nasc.getMonth();
@@ -43,7 +46,8 @@
 
   function calcularIdade(dataNasc: string): number {
     if (!dataNasc) return 0;
-    const nasc = new Date(dataNasc);
+    const [year, month, day] = dataNasc.split('-').map(Number);
+    const nasc = new Date(year, month - 1, day);
     const hoje = new Date();
     let idade = hoje.getFullYear() - nasc.getFullYear();
     const m = hoje.getMonth() - nasc.getMonth();
@@ -209,7 +213,7 @@
           {/if}
 
           <div class="input-group span-2">
-            <label>Animais Vinculados</label>
+            <label for="animais-select">Animais Vinculados</label>
             <div class="multi-select-container premium-input">
               <div class="tags-list">
                 {#each selectedAnimais as animalId}
@@ -223,14 +227,14 @@
                 {/each}
               </div>
               <select 
-                class="hidden-select" 
+                class="premium-input" 
                 onchange={(e) => toggleAnimal(e.currentTarget.value)}
                 value=""
               >
                 <option value="">+ Vincular Animal...</option>
                 {#each data.animais as a}
                   {#if !selectedAnimais.includes(a.id)}
-                    <option value={a.id}>{a.nome} ({a.categoria})</option>
+                    <option class="premium-input" value={a.id}>{a.nome} ({a.categoria})</option>
                   {/if}
                 {/each}
               </select>
@@ -362,7 +366,7 @@
     line-height: 1;
   }
   .hidden-select {
-    background: transparent;
+    /* background: transparent; */
     border: 1px dashed var(--border-glass);
     color: var(--text-muted);
     padding: 0.3rem;

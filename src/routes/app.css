@@ -41,7 +41,7 @@ body {
 
 .premium-input:focus {
   border-color: var(--primary);
-  background: rgba(179, 179, 179, 0.37);
+  background: rgba(253, 253, 253, 1);
   box-shadow: 0 0 0 4px rgba(194, 120, 3, 0.1);
   color: black;
 }

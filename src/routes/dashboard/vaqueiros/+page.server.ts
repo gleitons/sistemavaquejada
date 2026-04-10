@@ -17,8 +17,7 @@ export const load = async () => {
         .leftJoin(animais, eq(vaqueirosAnimais.animalId, animais.id));
 
         return { 
-            vaqueiros: vaqueirosList.map(v => ({
-                ...v,
+            vaqueiros: vaqueirosList.map(v => Object.assign({}, v, {
                 animais: associations
                     .filter(a => a.vaqueiroId === v.id && a.animal !== null)
                     .map(a => a.animal)
@@ -28,8 +27,8 @@ export const load = async () => {
     } catch (e: any) {
         console.error('SERVER LOAD ERROR:', e);
         return { 
-            vaqueiros: [], 
-            animais: [],
+            vaqueiros: [] as never[], 
+            animais: [] as never[],
             error: `Erro ao carregar dados: ${e.message}`
         };
     }
@@ -42,7 +41,7 @@ export const actions = {
         const animalIds = formData.getAll('animalIds') as string[];
         
         try {
-            const [newVaqueiro] = await db.insert(vaqueiros).values({
+            const insertResult = await db.insert(vaqueiros).values({
                 cpf: data.cpf as string,
                 nomeCompleto: data.nomeCompleto as string,
                 apelido: data.apelido as string,
@@ -61,6 +60,7 @@ export const actions = {
                 responsavelId: (data.responsavelId as string) || null,
                 grauParentesco: (data.grauParentesco as string) || null,
             }).returning();
+            const newVaqueiro = (insertResult as any[])[0];
 
             if (animalIds.length > 0) {
                 await db.insert(vaqueirosAnimais).values(

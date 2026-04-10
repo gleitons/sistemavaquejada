@@ -22,6 +22,23 @@
       ? data.senhas.filter(s => s.loteId === selectedLote.id)
       : []
   );
+  async function getBase64FromUrl(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.setAttribute('crossOrigin', 'anonymous'); // Evita erro de CORS
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      ctx?.drawImage(img, 0, 0);
+      const dataURL = canvas.toDataURL("image/png");
+      resolve(dataURL);
+    };
+    img.onerror = error => reject(error);
+    img.src = url;
+  });
+}
 
   function openLinkModal(senha: any) {
     console.log(senha);
@@ -32,6 +49,17 @@
     animalEsteiraId = senha.animalEsteiraId || "";
     competitionDate = senha.dataCompeticao || new Date().toISOString().split('T')[0];
     showModal = true;
+  }
+
+  function calcularIdade(dataNasc: string): number {
+    if (!dataNasc) return 0;
+    const [year, month, day] = dataNasc.split('-').map(Number);
+    const nasc = new Date(year, month - 1, day);
+    const hoje = new Date();
+    let idade = hoje.getFullYear() - nasc.getFullYear();
+    const m = hoje.getMonth() - nasc.getMonth();
+    if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--;
+    return idade;
   }
 
   function pprintVoucher(senha: any) {
@@ -82,8 +110,7 @@
   }
   // import jsPDF from 'jspdf';
 
-function printVoucher(senha: any) {
-  // Ajustado para A4 (210x297mm) para caber todas as informações do formulário
+async function printVoucher(senha: any) {
   const doc = new jsPDF({
     orientation: "portrait",
     unit: "mm",
@@ -92,113 +119,167 @@ function printVoucher(senha: any) {
 
   const puxador = data.vaqueiros.find(v => v.id === senha.puxadorId);
   const animalP = data.animais.find(a => a.id === senha.animalPuxadorId);
+  
+  // Conta quantos cavalos estão vinculados a este puxador no sistema
+  const cavalosVinculados = data.senhas.filter(s => s.puxadorId === puxador?.id).length;
 
   // --- CABEÇALHO ---
+  // doc.setFont("helvetica", "bold");
+  // doc.setFontSize(14);
+  // doc.text("PREFEITURA MUNICIPAL DE LAGOA DOS PATOS", 105, 15, { align: "center" }); // [cite: 1]
+  
+  // doc.setFontSize(10);
+  // doc.setFont("helvetica", "normal");
+  // doc.text("PRAÇA 31 DE MARÇO, 111 - CENTRO | TEL. (38) 3745-1239", 105, 20, { align: "center" }); // [cite: 2, 3]
+
+  // --- IMAGENS (LOGOS) ---
+  // Substitua as strings abaixo pelo seu código Base64 real (ex: 'data:image/png;base64,iVBORw...')
+  const logoEsquerdo = await getBase64FromUrl("/brasao-lagoa.jpg"); 
+  const logoDireito = await getBase64FromUrl("/logo-administracao.jpg");
+
+  // addImage(params: base64, formato, x, y, largura, altura)
+  if (logoEsquerdo) {
+    doc.addImage(logoEsquerdo, 'JPG', 10, 10, 25, 25); 
+  }
+  
+  if (logoDireito) {
+    doc.addImage(logoDireito, 'JPG', 175, 10, 25, 25);
+  }
+
+  // --- CABEÇALHO TEXTUAL ---
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
-  doc.text("PREFEITURA MUNICIPAL DE LAGOA DOS PATOS", 105, 15, { align: "center" });
+  doc.text("PREFEITURA MUNICIPAL DE LAGOA DOS PATOS", 105, 15, { align: "center" }); // [cite: 1]
   
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  doc.text("PRAÇA 31 DE MARÇO, 111 - CENTRO | TEL. (38) 3745-1239", 105, 20, { align: "center" });
+  doc.text("PRAÇA 31 DE MARÇO, 111 - CENTRO | TEL. (38) 3745-1239", 105, 20, { align: "center" }); // [cite: 2, 3]
   
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
-  doc.text("VAQUEJADA NACIONAL DE LAGOA DOS PATOS-2025", 105, 30, { align: "center" });
-  doc.text("08 a 11 de maio - Parque Pedro Pereira Durães", 105, 35, { align: "center" });
+  doc.text("VAQUEJADA NACIONAL DE LAGOA DOS PATOS-2025", 105, 30, { align: "center" }); // [cite: 4]
+  doc.text("08 a 11 de maio - Parque Pedro Pereira Durães", 105, 35, { align: "center" }); // [cite: 5]
 
   doc.setFontSize(14);
-  doc.text("FICHA DE INSCRIÇÃO", 105, 45, { align: "center" });
+  doc.text("FICHA DE INSCRIÇÃO", 105, 45, { align: "center" }); // [cite: 6]
   doc.setFontSize(11);
-  doc.text("CATEGORIA MUNICIPAL", 105, 50, { align: "center" });
+  doc.text("CATEGORIA MUNICIPAL", 105, 50, { align: "center" }); // [cite: 7]
 
   // --- NÚMERO DA SENHA ---
-  doc.rect(160, 40, 30, 15); // Caixa da senha
+  doc.rect(160, 40, 30, 15); 
   doc.setFontSize(8);
-  doc.text("Nº DA SENHA", 175, 44, { align: "center" });
+  doc.text("Nº DA SENHA", 175, 44, { align: "center" }); // [cite: 9]
   doc.setFontSize(14);
-  doc.text(`${senha.numero}`, 175, 52, { align: "center" });
+  doc.text(`${senha.numero}`, 175, 52, { align: "center" }); // [cite: 10]
 
   // --- DADOS DO COMPETIDOR ---
   doc.setFillColor(240, 240, 240);
   doc.rect(10, 60, 190, 7, 'F');
   doc.setFontSize(10);
-  doc.text("DADOS DO COMPETIDOR (PUXADOR)", 12, 65);
+  doc.text("DADOS DO COMPETIDOR (PUXADOR)", 12, 65); // [cite: 11]
 
-  // Tabela de Nome e Apelido
-  doc.rect(10, 67, 130, 12); // Nome
-  doc.rect(140, 67, 60, 12);  // Apelido
-  doc.setFontSize(8);
-  doc.text("NOME COMPLETO", 12, 71);
-  doc.text("APELIDO", 142, 71);
-  doc.setFontSize(10);
-  doc.text(puxador?.nomeCompleto || "---", 12, 76);
-  doc.text(puxador?.apelido || "---", 142, 76);
+  // Linha 1: Nome e Apelido
+  doc.rect(10, 67, 130, 12); 
+  doc.rect(140, 67, 60, 12); 
+  doc.setFontSize(7);
+  doc.text("NOME COMPLETO", 12, 71); // [cite: 12]
+  doc.text("APELIDO", 142, 71); // [cite: 12]
+  doc.setFontSize(9);
+  doc.text(puxador?.nomeCompleto?.toUpperCase() || "---", 12, 76);
+  doc.text(puxador?.apelido?.toUpperCase() || "---", 142, 76);
 
-  // CPF, RG e Telefone
-  doc.rect(10, 79, 60, 12); 
+  // Linha 2: Nascimento, Idade e Cavalos Vinculados
+  doc.rect(10, 79, 60, 12);
   doc.rect(70, 79, 60, 12);
   doc.rect(130, 79, 70, 12);
-  doc.setFontSize(8);
-  doc.text("CPF", 12, 83);
-  doc.text("IDENTIDADE (RG)", 72, 83);
-  doc.text("TELEFONE", 132, 83);
-  doc.setFontSize(10);
-  doc.text(puxador?.cpf || "---", 12, 88);
-  doc.text(puxador?.rg || "---", 72, 88);
-  doc.text(puxador?.telefone || "---", 132, 88);
+  doc.setFontSize(7);
+  doc.text("DATA DE NASCIMENTO", 12, 83);
+  doc.text("IDADE", 72, 83);
+  doc.text("ANIMAIS VINCULADOS NESTE CPF", 132, 83);
+  doc.setFontSize(9);
+  const dataNasc = puxador?.dataNascimento ? puxador.dataNascimento.split('-').reverse().join('/') : "---";
+  doc.text(dataNasc, 12, 88);
+  doc.text(`${calcularIdade(puxador?.dataNascimento)} anos`, 72, 88);
+  doc.text(`${cavalosVinculados} animal(is)`, 132, 88);
 
-  // Endereço, Cidade e Título
-  doc.rect(10, 91, 100, 12);
-  doc.rect(110, 91, 50, 12);
-  doc.rect(160, 91, 40, 12);
+  // Linha 3: CPF, Identidade e Telefone
+  doc.rect(10, 91, 60, 12); 
+  doc.rect(70, 91, 60, 12);
+  doc.rect(130, 91, 70, 12);
+  doc.setFontSize(7);
+  doc.text("CPF", 12, 95); // [cite: 13]
+  doc.text("IDENTIDADE (RG)", 72, 95); // [cite: 13]
+  doc.text("TELEFONE", 132, 95); // [cite: 13]
+  doc.setFontSize(9);
+  doc.text(puxador?.cpf || "---", 12, 100);
+  doc.text(puxador?.identidade?.toUpperCase() || "---", 72, 100);
+  doc.text(puxador?.telefone || "---", 132, 100);
+
+  // Linha 4: Filiação (Pai e Mãe)
+  doc.rect(10, 103, 95, 12); 
+  doc.rect(105, 103, 95, 12);
+  doc.setFontSize(7);
+  doc.text("NOME DO PAI", 12, 107);
+  doc.text("NOME DA MÃE", 107, 107);
+  doc.setFontSize(9);
+  doc.text(puxador?.nomePai?.toUpperCase() || "---", 12, 112);
+  doc.text(puxador?.nomeMae?.toUpperCase() || "---", 107, 112);
+
+  // Linha 5: Endereço Completo
+  doc.rect(10, 115, 100, 12);
+  doc.rect(110, 115, 50, 12);
+  doc.rect(160, 115, 40, 12);
+  doc.setFontSize(7);
+  doc.text("ENDEREÇO (LOGRADOURO, Nº, BAIRRO)", 12, 119); // [cite: 14]
+  doc.text("CIDADE / COMUNIDADE", 112, 119); // [cite: 14]
+  doc.text("TÍTULO DE ELEITOR", 162, 119); // [cite: 14]
   doc.setFontSize(8);
-  doc.text("ENDEREÇO", 12, 95);
-  doc.text("CIDADE", 112, 95);
-  doc.text("TÍTULO DE ELEITOR", 162, 95);
-  doc.setFontSize(10);
-  doc.text(puxador?.endereco || "---", 12, 100);
-  doc.text(puxador?.cidade || "LAGOA DOS PATOS", 112, 100);
-  doc.text(puxador?.tituloEleitor || "---", 162, 100);
+  const endereco = `${puxador?.logradouro}, ${puxador?.numero} - ${puxador?.bairro}`;
+  doc.text(endereco.toUpperCase(), 12, 124);
+  doc.text(`${puxador?.cidade} / ${puxador?.comunidade}`.toUpperCase(), 112, 124);
+  doc.text(puxador?.tituloEleitor || "---", 162, 124);
 
   // --- DADOS DO ANIMAL ---
-  doc.setFillColor(240, 240, 240);
-  doc.rect(10, 110, 190, 7, 'F');
-  doc.text("DADOS DO ANIMAL (PUXADOR)", 12, 115);
+doc.setFillColor(240, 240, 240);
+doc.rect(10, 132, 190, 7, 'F');
+doc.setFontSize(10);
+doc.text("DADOS DO ANIMAL (PUXADOR)", 12, 137); // [cite: 11, 15]
 
-  doc.rect(10, 117, 130, 12); // Nome Animal
-  doc.rect(140, 117, 60, 12);  // Cor
-  doc.setFontSize(8);
-  doc.text("NOME", 12, 121);
-  doc.text("COR", 142, 121);
-  doc.setFontSize(10);
-  doc.text(animalP?.nome || "---", 12, 126);
-  doc.text(animalP?.cor || "---", 142, 126);
+// Divisão da linha: Nome (90mm), Raça (50mm), Cor (50mm)
+doc.rect(10, 139, 90, 12);  // Box Nome
+doc.rect(100, 139, 50, 12); // Box Raça
+doc.rect(150, 139, 50, 12); // Box Cor
 
+doc.setFontSize(7);
+doc.text("NOME DO ANIMAL", 12, 143); // 
+doc.text("RAÇA", 102, 143);
+doc.text("COR", 152, 143); // 
+
+doc.setFontSize(9);
+doc.text(animalP?.nome?.toUpperCase() || "---", 12, 148); // 
+doc.text(animalP?.raca?.toUpperCase() || "---", 102, 148);
+doc.text(animalP?.cor?.toUpperCase() || "---", 152, 148); //
   // --- RODAPÉ E ASSINATURAS ---
   doc.setFontSize(8);
-  const declaracao = "DECLARO que todas as informações prestadas acima são verdadeiras e assumo total responsabilidade pelas mesmas.";
-  doc.text(declaracao, 10, 140);
+  const declaracao = "DECLARO que todas as informações prestadas acima são verdadeiras e assumo total responsabilidade pelas mesmas."; // [cite: 16]
+  doc.text(declaracao, 10, 165);
 
-  const dataAtual = `Lagoa dos Patos/MG, ${new Date().toLocaleDateString('pt-BR')}.`;
-  doc.text(dataAtual, 10, 150);
+  const dataAtual = `Lagoa dos Patos/MG, ${new Date().toLocaleDateString('pt-BR')}.`; // [cite: 17]
+  doc.text(dataAtual, 10, 175);
 
-  // Linhas de assinatura
-  doc.line(10, 170, 90, 170);
-  doc.text("ASSINATURA (Competidor/puxador)", 50, 175, { align: "center" });
+  doc.line(10, 195, 90, 195);
+  doc.text("ASSINATURA (Competidor/puxador)", 50, 200, { align: "center" }); // [cite: 18]
 
-  doc.line(110, 170, 190, 170);
-  doc.text("Resp. pelo recebimento de documentos", 150, 175, { align: "center" });
+  doc.line(110, 195, 190, 195);
+  doc.text("Resp. pelo recebimento de documentos", 150, 200, { align: "center" }); // [cite: 19]
 
-  // Nota importante
   doc.setFontSize(7);
-  doc.text("* Para validação da inscrição (pela comissão), deverá ser anexada junto a esta ficha, cópia legível de", 10, 185);
-  doc.text("documento (com foto) do competidor, comprovante de endereço e título de eleitor.", 10, 189);
+  doc.text("* Para validação da inscrição (pela comissão), deverá ser anexada junto a esta ficha, cópia legível de", 10, 215); // [cite: 20]
+  doc.text("documento (com foto) do competidor, comprovante de endereço e título de eleitor.", 10, 220); // [cite: 20]
 
   doc.save(`inscricao_${puxador?.nomeCompleto || senha.numero}.pdf`);
 }
-
-function senhaJuizes(senha: any) {
+async function senhaJuizes(senha: any) {
   const doc = new jsPDF({
     orientation: "portrait",
     unit: "mm",
@@ -209,8 +290,18 @@ function senhaJuizes(senha: any) {
   const animalP = data.animais.find(a => a.id === senha.animalPuxadorId);
   const esteira = data.vaqueiros.find(v => v.id === senha.esteiraId);
 
+  const logoEsquerdo = await getBase64FromUrl("/brasao-lagoa.jpg").catch(()=>null); 
+  const logoDireito = await getBase64FromUrl("/logo-administracao.jpg").catch(()=>null);
+
   function drawCard(yOff: number) {
     const cx = 105; // center X
+
+    if (logoEsquerdo) {
+      doc.addImage(logoEsquerdo, 'JPG', 10, yOff + 10, 20, 20); 
+    }
+    if (logoDireito) {
+      doc.addImage(logoDireito, 'JPG', 180, yOff + 10, 20, 20);
+    }
 
     // --- CABEÇALHO ---
     doc.setFont("helvetica", "bold");
@@ -234,7 +325,7 @@ function senhaJuizes(senha: any) {
     // --- CAIXA Nº DA SENHA ---
     doc.setLineWidth(0.4);
     doc.rect(148, yOff + 23, 42, 18);
-    doc.setFontSize(8);
+    doc.setFontSize(15);
     doc.setFont("helvetica", "normal");
     doc.text("Nº DA SENHA", 169, yOff + 27, { align: "center" });
     doc.setFont("helvetica", "bold");
@@ -334,14 +425,17 @@ function senhaJuizes(senha: any) {
 
   doc.save(`senha_juizes_${senha.numero}.pdf`);
 }
-const verIdade = (dataNascimento: string) => {
+const verIdade = (dataNasc: string): number => {
+  if (!dataNasc) return 0;
+  const [year, month, day] = dataNasc.split('-').map(Number);
+  const nasc = new Date(year, month - 1, day);
   const hoje = new Date();
-  const dataNasc = new Date(dataNascimento);
-  const diff = hoje - dataNasc;
-  const idade = Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
+  let idade = hoje.getFullYear() - nasc.getFullYear();
+  const m = hoje.getMonth() - nasc.getMonth();
+  if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--;
   return idade;
 }
-function autorizacaoMenor(senha: any) {
+async function autorizacaoMenor(senha: any) {
   const puxador = data.vaqueiros.find(v => v.id === senha.puxadorId);
   if (!puxador) { alert('Puxador não encontrado.'); return; }
   if (!puxador.responsavelId) { alert('Este vaqueiro não possui um responsável vinculado. Cadastre o responsável na página de Vaqueiros.'); return; }
@@ -354,14 +448,22 @@ function autorizacaoMenor(senha: any) {
   const mx = 15;
   const cw = pw - 2 * mx;
 
+  const logoEsquerdo = await getBase64FromUrl("/brasao-lagoa.jpg").catch(()=>null); 
+  const logoDireito = await getBase64FromUrl("/logo-administracao.jpg").catch(()=>null);
+  if (logoEsquerdo) {
+    doc.addImage(logoEsquerdo, 'JPG', 10, 10, 25, 25); 
+  }
+  if (logoDireito) {
+    doc.addImage(logoDireito, 'JPG', 175, 10, 25, 25);
+  }
+
   // --- CABEÇALHO ---
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.text('PREFEITURA MUNICIPAL DE LAGOA DOS PATOS', pw / 2, 15, { align: 'center' });
-  doc.setFontSize(8);
+  doc.setFontSize(14);
+  doc.text('PREFEITURA MUNICIPAL DE LAGOA DOS PATOS', 105, 15, { align: 'center' });
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text('PRAÇA 31 DE MARÇO, 111 - CENTRO', pw / 2, 19, { align: 'center' });
-  doc.text('TEL. (38) 3745-1239', pw / 2, 23, { align: 'center' });
+  doc.text('PRAÇA 31 DE MARÇO, 111 - CENTRO | TEL. (38) 3745-1239', 105, 20, { align: 'center' });
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
@@ -498,7 +600,7 @@ function autorizacaoMenor(senha: any) {
   doc.save('autorizacao_menor_' + (puxador.nomeCompleto || senha.numero) + '.pdf');
 }
 
-function imprimirRelatorioSenhas() {
+async function imprimirRelatorioSenhas() {
   if (!selectedLote) return;
 
   const doc = new jsPDF({
@@ -516,6 +618,9 @@ function imprimirRelatorioSenhas() {
   
   const colWidth = (pageWidth - 2 * marginX) / colCount;
   const rowHeight = (pageHeight - marginY - 45) / rowCount;
+
+  const logoEsquerdo = await getBase64FromUrl("/brasao-lagoa.jpg").catch(()=>null); 
+  const logoDireito = await getBase64FromUrl("/logo-administracao.jpg").catch(()=>null);
   
   let currentSenhaIndex = 0;
   
@@ -523,15 +628,22 @@ function imprimirRelatorioSenhas() {
     if (currentSenhaIndex > 0) {
       doc.addPage();
     }
+
+    if (logoEsquerdo) {
+      doc.addImage(logoEsquerdo, 'JPG', 10, 5, 20, 20); 
+    }
+    if (logoDireito) {
+      doc.addImage(logoDireito, 'JPG', pageWidth - 30, 5, 20, 20);
+    }
     
     // Cabeçalho
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
+    doc.setFontSize(14);
     doc.text("PREFEITURA MUNICIPAL DE LAGOA DOS PATOS", pageWidth / 2, 12, { align: "center" });
     
-    doc.setFontSize(9);
+    doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text("PRAÇA 31 DE MARÇO, 111 - CENTRO - TEL. (38) 3745-1239", pageWidth / 2, 17, { align: "center" });
+    doc.text("PRAÇA 31 DE MARÇO, 111 - CENTRO | TEL. (38) 3745-1239", pageWidth / 2, 17, { align: "center" });
     
     doc.setLineWidth(0.5);
     doc.line(marginX, 20, pageWidth - marginX, 20);
@@ -624,7 +736,8 @@ let puxadorMenorSemResponsavel = $derived(() => {
   if (!puxadorId) return false;
   const pux = data.vaqueiros.find(v => v.id === puxadorId);
   if (!pux || !pux.dataNascimento) return false;
-  const nasc = new Date(pux.dataNascimento);
+  const [year, month, day] = pux.dataNascimento.split('-').map(Number);
+  const nasc = new Date(year, month - 1, day);
   const hoje = new Date();
   let idade = hoje.getFullYear() - nasc.getFullYear();
   const m = hoje.getMonth() - nasc.getMonth();
@@ -679,8 +792,12 @@ let puxadorMenorSemResponsavel = $derived(() => {
     {@const puxador = data?.vaqueiros?.find(v => v.id === senha?.puxadorId)}
     {@const isMenor = () =>{
       if(!puxador?.dataNascimento) return false;
-      const dataNascimento = new Date(puxador?.dataNascimento);
-      const idade = new Date().getFullYear() - dataNascimento.getFullYear();
+      const [year, month, day] = puxador.dataNascimento.split('-').map(Number);
+      const nasc = new Date(year, month - 1, day);
+      const hoje = new Date();
+      let idade = hoje.getFullYear() - nasc.getFullYear();
+      const m = hoje.getMonth() - nasc.getMonth();
+      if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--;
       return idade < 18;
     }}
 
