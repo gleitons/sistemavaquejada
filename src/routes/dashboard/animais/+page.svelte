@@ -22,6 +22,7 @@
   }
 
   function startEdit(a: any) {
+    window.location.href = "#editar";
     editingAnimal = a;
     selectedVaqueiros = a.vaqueiros ? a.vaqueiros.map((v: any) => v.id) : [];
     showForm = true;
@@ -42,9 +43,9 @@
   <div class="page-header">
     <div>
         <h1>Animais</h1>
-        <p>Bovinos e Equinos registrados</p>
+        <p>Equinos registrados</p>
     </div>
-    <button class="premium-button" onclick={showForm ? closeForm : () => showForm = true}>
+    <button id="editar" class="premium-button" onclick={showForm ? closeForm : () => showForm = true}>
         {showForm ? 'Fechar Formulário' : '+ Novo Animal'}
     </button>
   </div>
@@ -105,10 +106,10 @@
                 onchange={(e) => toggleVaqueiro(e.currentTarget.value)}
                 value=""
               >
-                <option value="">+ Vincular Vaqueiro...</option>
+                <option class="bg-black" value="">+ Vincular Vaqueiro...</option>
                 {#each data.vaqueiros as v}
                   {#if !selectedVaqueiros.includes(v.id)}
-                    <option value={v.id}>{v.nomeCompleto} ({v.cpf})</option>
+                    <option class="bg-black uppercase" value={v.id}>{v.nomeCompleto} ({v.cpf})</option>
                   {/if}
                 {/each}
               </select>
@@ -137,7 +138,7 @@
         {/if}
 
         <div class="form-actions">
-          <button type="submit" class="premium-button submit-btn" disabled={loading}>
+          <button type="submit" class="premium-button submit-btn my-5" disabled={loading}>
             {loading ? 'Salvando...' : (editingAnimal ? 'Atualizar Dados' : 'Registrar Animal')}
           </button>
           {#if editingAnimal}

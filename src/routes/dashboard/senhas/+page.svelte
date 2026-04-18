@@ -2,8 +2,11 @@
   import { invalidateAll } from "$app/navigation";
   import { enhance } from "$app/forms";
   import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
+import Loading from "../../../components/Loading.svelte";
 
   let { data, form } = $props();
+
   console.log(data);
 
   let showModal = $state(false);
@@ -143,7 +146,7 @@ async function printVoucher(senha: any) {
   }
   
   if (logoDireito) {
-    doc.addImage(logoDireito, 'JPG', 175, 10, 25, 25);
+    doc.addImage(logoDireito, 'JPG', 165, 10, 40, 25);
   }
 
   // --- CABEÇALHO TEXTUAL ---
@@ -153,12 +156,12 @@ async function printVoucher(senha: any) {
   
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  doc.text("PRAÇA 31 DE MARÇO, 111 - CENTRO | TEL. (38) 3745-1239", 105, 20, { align: "center" }); // [cite: 2, 3]
+  doc.text("PRAÇA 31 DE MARÇO, 111 - CENTRO | TEL. (38) 3426-0398", 105, 20, { align: "center" }); // [cite: 2, 3]
   
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
-  doc.text("VAQUEJADA NACIONAL DE LAGOA DOS PATOS-2025", 105, 30, { align: "center" }); // [cite: 4]
-  doc.text("08 a 11 de maio - Parque Pedro Pereira Durães", 105, 35, { align: "center" }); // [cite: 5]
+  doc.text("VAQUEJADA NACIONAL DE LAGOA DOS PATOS - 2026", 105, 30, { align: "center" }); // [cite: 4]
+  doc.text("07 a 10 de maio - Parque de Vaquejada Pedro Pereira Durães", 105, 35, { align: "center" }); // [cite: 5]
 
   doc.setFontSize(14);
   doc.text("FICHA DE INSCRIÇÃO", 105, 45, { align: "center" }); // [cite: 6]
@@ -169,7 +172,7 @@ async function printVoucher(senha: any) {
   doc.rect(160, 40, 30, 15); 
   doc.setFontSize(8);
   doc.text("Nº DA SENHA", 175, 44, { align: "center" }); // [cite: 9]
-  doc.setFontSize(14);
+  doc.setFontSize(24);
   doc.text(`${senha.numero}`, 175, 52, { align: "center" }); // [cite: 10]
 
   // --- DADOS DO COMPETIDOR ---
@@ -268,14 +271,14 @@ doc.text(animalP?.cor?.toUpperCase() || "---", 152, 148); //
   doc.text(dataAtual, 10, 175);
 
   doc.line(10, 195, 90, 195);
-  doc.text("ASSINATURA (Competidor/puxador)", 50, 200, { align: "center" }); // [cite: 18]
+  doc.text(`ASSINATURA: ${puxador?.nomeCompleto?.toUpperCase() || "---"}`, 50, 200, { align: "center" }); // [cite: 18]
 
   doc.line(110, 195, 190, 195);
   doc.text("Resp. pelo recebimento de documentos", 150, 200, { align: "center" }); // [cite: 19]
 
   doc.setFontSize(7);
-  doc.text("* Para validação da inscrição (pela comissão), deverá ser anexada junto a esta ficha, cópia legível de", 10, 215); // [cite: 20]
-  doc.text("documento (com foto) do competidor, comprovante de endereço e título de eleitor.", 10, 220); // [cite: 20]
+  doc.text("* Para validação da inscrição (pela comissão), deverá ser anexada junto a esta ficha, cópia legível de documento (com foto) do competidor, ", 10, 215); // [cite: 20]
+  doc.text("comprovante de endereço e título de eleitor.", 10, 220); // [cite: 20]
 
   doc.save(`inscricao_${puxador?.nomeCompleto || senha.numero}.pdf`);
 }
@@ -300,17 +303,17 @@ async function senhaJuizes(senha: any) {
       doc.addImage(logoEsquerdo, 'JPG', 10, yOff + 10, 20, 20); 
     }
     if (logoDireito) {
-      doc.addImage(logoDireito, 'JPG', 180, yOff + 10, 20, 20);
+      doc.addImage(logoDireito, 'JPG', 180, yOff + 10, 25, 12);
     }
 
     // --- CABEÇALHO ---
     doc.setFont("helvetica", "bold");
     doc.setFontSize(13);
-    doc.text("VAQUEJADA NACIONAL DE LAGOA DOS PATOS-2025", cx, yOff + 14, { align: "center" });
+    doc.text("VAQUEJADA NACIONAL DE LAGOA DOS PATOS - 2026", cx, yOff + 14, { align: "center" });
 
     doc.setFont("helvetica", "italic");
     doc.setFontSize(8);
-    doc.text("08 a 11 de maio – Parque Pedro Pereira Durães", cx, yOff + 19, { align: "center" });
+    doc.text("07 a 10 de maio – Parque de Vaquejada Pedro Pereira Durães", cx, yOff + 19, { align: "center" });
 
     // --- CATEGORIA MUNICIPAL (sublinhado) ---
     doc.setFont("helvetica", "bold");
@@ -325,7 +328,7 @@ async function senhaJuizes(senha: any) {
     // --- CAIXA Nº DA SENHA ---
     doc.setLineWidth(0.4);
     doc.rect(148, yOff + 23, 42, 18);
-    doc.setFontSize(15);
+    doc.setFontSize(13);
     doc.setFont("helvetica", "normal");
     doc.text("Nº DA SENHA", 169, yOff + 27, { align: "center" });
     doc.setFont("helvetica", "bold");
@@ -333,64 +336,69 @@ async function senhaJuizes(senha: any) {
     doc.text(`${senha.numero}`, 169, yOff + 38, { align: "center" });
 
     // --- TABELA VAQUEIRO / ANIMAL / ESTEIREIRO ---
-    const tX = 20;       // table X start
-    const tW = 170;      // table total width
-    const labelW = 28;   // label column width
-    const rowH = 9;      // row height
-    const tY = yOff + 48;
+    const tX = 10;       // table X start
+    const tW = 190;      // table total width
+    const labelW = 40;   // label column width
+    const rowH = 7.5;      // row height
+    let tY = yOff + 45;
 
-    // Linha 1: VAQUEIRO
-    doc.setFillColor(200, 200, 200);
-    doc.rect(tX, tY, labelW, rowH, 'FD');
-    doc.rect(tX + labelW, tY, tW - labelW, rowH);
-    doc.setFontSize(7);
-    doc.setFont("helvetica", "bold");
-    doc.text("VAQUEIRO", tX + 3, tY + 6);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text(puxador?.nomeCompleto?.toUpperCase() || "---", tX + labelW + 4, tY + 6.5);
+    function addRow(label: string, value: string, bg = true) {
+      if (bg) {
+        doc.setFillColor(235, 235, 235);
+        doc.rect(tX, tY, labelW, rowH, 'FD');
+      } else {
+        doc.rect(tX, tY, labelW, rowH);
+      }
+      doc.rect(tX + labelW, tY, tW - labelW, rowH);
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "bold");
+      doc.text(label.toUpperCase(), tX + 3, tY + 5);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.text(value?.toUpperCase() || "---", tX + labelW + 4, tY + 5.5);
+      tY += rowH;
+    }
 
-    // Linha 2: ANIMAL + COR
-    const r2Y = tY + rowH;
-    const corLabelX = 135;
-    const corLabelW = 13;
-    doc.setFillColor(200, 200, 200);
-    doc.rect(tX, r2Y, labelW, rowH, 'FD');
-    doc.rect(tX + labelW, r2Y, corLabelX - tX - labelW, rowH);
-    doc.rect(corLabelX, r2Y, corLabelW, rowH);
-    doc.rect(corLabelX + corLabelW, r2Y, tX + tW - corLabelX - corLabelW, rowH);
-    doc.setFontSize(7);
-    doc.setFont("helvetica", "bold");
-    doc.text("ANIMAL", tX + 3, r2Y + 6);
-    doc.text("COR", corLabelX + 2, r2Y + 6);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text(animalP?.nome?.toUpperCase() || "---", tX + labelW + 4, r2Y + 6.5);
-    doc.text(animalP?.cor?.toUpperCase() || "---", corLabelX + corLabelW + 3, r2Y + 6.5);
+    // VAQUEIRO
+    addRow("Vaqueiro (Puxador)", `${puxador?.nomeCompleto || "---"} (${puxador?.apelido || "n/a"})`);
+    
+    // FILIAÇÃO VAQUEIRO
+    const filiacaoV = `Pai: ${puxador?.nomePai || "---"} | Mãe: ${puxador?.nomeMae || "---"}`;
+    addRow("Filiação Vaqueiro", filiacaoV, false);
 
-    // Linha 3: ESTEIREIRO
-    const r3Y = r2Y + rowH;
-    doc.setFillColor(200, 200, 200);
-    doc.rect(tX, r3Y, labelW, rowH, 'FD');
-    doc.rect(tX + labelW, r3Y, tW - labelW, rowH);
-    doc.setFontSize(7);
-    doc.setFont("helvetica", "bold");
-    doc.text("ESTEIREIRO", tX + 3, r3Y + 6);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.text(esteira?.nomeCompleto?.toUpperCase() || "", tX + labelW + 4, r3Y + 6.5);
+    // IDADE E LOCALIDADE
+    const localidade = `Idade: ${calcularIdade(puxador?.dataNascimento)} anos | Comunidade: ${puxador?.comunidade || "---"} | Cidade: ${puxador?.cidade || "---"}`;
+    addRow("Info Vaqueiro", localidade, false);
+
+    // ANIMAL
+    const animalInfo = `${animalP?.nome || "---"} | Cor: ${animalP?.cor || "---"} | Raça: ${animalP?.raca || "---"}`;
+    addRow("Animal (Puxador)", animalInfo);
+
+    // PEDIGREE ANIMAL
+    const pedigreeA = `Pai: ${animalP?.pai || "---"} | Mãe: ${animalP?.mae || "---"}`;
+    addRow("Pedigree Animal", pedigreeA, false);
+
+    // ATRIBUTOS ANIMAL
+    const idadeAnimal = animalP?.dataNascimento ? `${calcularIdade(animalP.dataNascimento)} anos` : "n/a";
+    const pesoAnimal = animalP?.peso ? `${animalP.peso} kg` : "n/a";
+    const valorAnimal = animalP?.valorReal ? `R$ ${animalP.valorReal.toLocaleString('pt-BR')}` : "n/a";
+    const atributosA = `Idade: ${idadeAnimal} | Peso: ${pesoAnimal} | Valor: ${valorAnimal}`;
+    addRow("Atributos Animal", atributosA, false);
+
+    // ESTEIREIRO
+    addRow("Esteireiro", esteira?.nomeCompleto || "---");
 
     // --- CLASSIFICAÇÃO ---
-    const boxSize = 14;
-    const boxGap = 7;
+    const boxSize = 12;
+    const boxGap = 5;
     const classLabelW = 35;
-    const classY = r3Y + rowH + 12;
+    const classY = tY + 8;
 
-    doc.setFillColor(200, 200, 200);
+    doc.setFillColor(235, 235, 235);
     doc.rect(tX, classY, classLabelW, boxSize, 'FD');
     doc.setFontSize(7);
     doc.setFont("helvetica", "bold");
-    doc.text("CLASSIFICAÇÃO", tX + 2, classY + 9);
+    doc.text("CLASSIFICAÇÃO", tX + 2, classY + 7);
 
     for (let i = 0; i < 5; i++) {
       const bx = tX + classLabelW + 10 + i * (boxSize + boxGap);
@@ -398,12 +406,12 @@ async function senhaJuizes(senha: any) {
     }
 
     // --- DISPUTA ---
-    const dispY = classY + boxSize + 10;
-    doc.setFillColor(200, 200, 200);
-    doc.rect(tX + 5, dispY, classLabelW - 5, boxSize, 'FD');
+    const dispY = classY + boxSize + 6;
+    doc.setFillColor(235, 235, 235);
+    doc.rect(tX, dispY, classLabelW, boxSize, 'FD');
     doc.setFontSize(7);
     doc.setFont("helvetica", "bold");
-    doc.text("DISPUTA", tX + 8, dispY + 9);
+    doc.text("DISPUTA", tX + 2, dispY + 7);
 
     for (let i = 0; i < 5; i++) {
       const bx = tX + classLabelW + 10 + i * (boxSize + boxGap);
@@ -454,7 +462,7 @@ async function autorizacaoMenor(senha: any) {
     doc.addImage(logoEsquerdo, 'JPG', 10, 10, 25, 25); 
   }
   if (logoDireito) {
-    doc.addImage(logoDireito, 'JPG', 175, 10, 25, 25);
+    doc.addImage(logoDireito, 'JPG', 160, 10, 40, 25);
   }
 
   // --- CABEÇALHO ---
@@ -467,10 +475,10 @@ async function autorizacaoMenor(senha: any) {
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
-  doc.text('VAQUEJADA NACIONAL DE LAGOA DOS PATOS-2025', pw / 2, 32, { align: 'center' });
+  doc.text('VAQUEJADA NACIONAL DE LAGOA DOS PATOS - 2026', pw / 2, 32, { align: 'center' });
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(8);
-  doc.text('De 08 a 11 de maio - Parque Pedro Pereira Duraes', pw / 2, 37, { align: 'center' });
+  doc.text('07 a 10 de maio - Parque de Vaquejada Pedro Pereira Durães', pw / 2, 37, { align: 'center' });
 
   doc.setFont('helvetica', 'bolditalic');
   doc.setFontSize(13);
@@ -485,7 +493,7 @@ async function autorizacaoMenor(senha: any) {
   doc.text('TERMO DE AUTORIZACAO', pw / 2, 55, { align: 'center' });
   doc.setFontSize(9);
   doc.text('DOS PAIS OU RESPONSAVEIS PARA MENORES DE IDADE PARTICIPAREM NA', pw / 2, 60, { align: 'center' });
-  doc.text('CATEGORIA MUNICIPAL DA VAQUEJA DE LAGOA DOS PATOS - 2025', pw / 2, 65, { align: 'center' });
+  doc.text('CATEGORIA MUNICIPAL DA VAQUEJA DE LAGOA DOS PATOS - 2026', pw / 2, 65, { align: 'center' });
 
   // --- DADOS DO MENOR ---
   let y = 73;
@@ -561,20 +569,20 @@ async function autorizacaoMenor(senha: any) {
   doc.setFontSize(9);
   doc.text(resp.cpf || '---', mx + 3, y + 5.5);
   doc.text(resp.telefone || '---', mx + 63, y + 5.5);
-  doc.text(resp.identidade || '---', mx + 128, y + 5.5);
+  doc.text(resp.identidade.toUpperCase() || '---', mx + 128, y + 5.5);
 
   // --- TEXTO DE AUTORIZACAO ---
   y += 16;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
-  const par1 = 'Pelo presente, autorizo a participacao do menor acima identificado como competidor (puxador) na VAQUEJADA NACIONAL DE LAGOA DOS PATOS, "CATEGORIA MUNICIPAL" que acontecera entre os dias 08 a 11 de maio de 2025, no Parque de Vaquejada Pedro Pereira Duraes.';
+  const par1 = 'Pelo presente, autorizo a participacao do menor acima identificado como competidor (puxador) na VAQUEJADA NACIONAL DE LAGOA DOS PATOS, "CATEGORIA MUNICIPAL" que acontecera entre os dias 07 a 10 de maio de 2026, no Parque de Vaquejada Pedro Pereira Duraes.';
   const l1 = doc.splitTextToSize(par1, cw);
   doc.text(l1, mx, y);
 
   y += l1.length * 5 + 4;
   doc.setFont('helvetica', 'bolditalic');
   doc.setFontSize(9);
-  const par2 = 'Declaro que a participacao e efetuada por livre e espontanea vontade do menor e que este nao tem qualquer contraindicacao para a pratica da atividade (vaquejada) e que assumo, integralmente, a responsabilidade pelos riscos que envolvem a participacao do referido menor neste evento, bem como por sua integridade fisica e moral e pelo teor das informacoes acima descritas. Declaro, ainda, que estou ciente dos riscos envolvidos nesta modalidade, sendo assim, em hipotese alguma, responsabilizarei seus organizadores, nem outras instituicoes e pessoas, por acidentes, incidentes e possiveis consequencias que possam ocorrer em funcao da participacao do menor na Vaquejada Nacional de Lagoa dos Patos, categoria Municipal.';
+  const par2 = `Eu, ${resp.nomeCompleto.toUpperCase()}, portador do CPF ${resp.cpf}, declaro que a participacao e efetuada por livre e espontanea vontade do menor ${puxador.nomeCompleto.toUpperCase()} e que este nao tem qualquer contraindicacao para a pratica da atividade (vaquejada) e que assumo, integralmente, a responsabilidade pelos riscos que envolvem a participacao do referido menor neste evento, bem como por sua integridade fisica e moral e pelo teor das informacoes acima descritas. Declaro, ainda, que estou ciente dos riscos envolvidos nesta modalidade, sendo assim, em hipotese alguma, responsabilizarei seus organizadores, nem outras instituicoes e pessoas, por acidentes, incidentes e possiveis consequencias que possam ocorrer em funcao da participacao do menor na Vaquejada Nacional de Lagoa dos Patos, categoria Municipal.`;
   const l2 = doc.splitTextToSize(par2, cw);
   doc.text(l2, mx, y);
 
@@ -590,7 +598,7 @@ async function autorizacaoMenor(senha: any) {
   y += 25;
   doc.line(mx + 35, y, pw - mx - 35, y);
   doc.setFontSize(9);
-  doc.text('Assinatura do responsavel', pw / 2, y + 5, { align: 'center' });
+  doc.text('Responsável: ' + resp.nomeCompleto.toUpperCase() + ' - ' + resp.cpf, pw / 2, y + 5, { align: 'center' });
 
   y += 20;
   doc.setFontSize(8);
@@ -600,7 +608,7 @@ async function autorizacaoMenor(senha: any) {
   doc.save('autorizacao_menor_' + (puxador.nomeCompleto || senha.numero) + '.pdf');
 }
 
-async function imprimirRelatorioSenhas() {
+async function imprimirMapaSenhas() {
   if (!selectedLote) return;
 
   const doc = new jsPDF({
@@ -608,7 +616,7 @@ async function imprimirRelatorioSenhas() {
     unit: "mm",
     format: "a4"
   });
-
+ 
   const pageWidth = 297;
   const pageHeight = 210;
   const marginX = 10;
@@ -633,7 +641,7 @@ async function imprimirRelatorioSenhas() {
       doc.addImage(logoEsquerdo, 'JPG', 10, 5, 20, 20); 
     }
     if (logoDireito) {
-      doc.addImage(logoDireito, 'JPG', pageWidth - 30, 5, 20, 20);
+      doc.addImage(logoDireito, 'JPG', pageWidth - 40, 5, 30, 20);
     }
     
     // Cabeçalho
@@ -643,18 +651,18 @@ async function imprimirRelatorioSenhas() {
     
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text("PRAÇA 31 DE MARÇO, 111 - CENTRO | TEL. (38) 3745-1239", pageWidth / 2, 17, { align: "center" });
+    doc.text("PRAÇA 31 DE MARÇO, 111 - CENTRO | TEL. (38) 3426-0398", pageWidth / 2, 17, { align: "center" });
     
     doc.setLineWidth(0.5);
-    doc.line(marginX, 20, pageWidth - marginX, 20);
+    doc.line(50, 20, pageWidth - 50, 20);
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
-    doc.text("VAQUEJADA NACIONAL DE LAGOA DOS PATOS-2025", pageWidth / 2, 26, { align: "center" });
+    doc.text("VAQUEJADA NACIONAL DE LAGOA DOS PATOS - 2026", pageWidth / 2, 26, { align: "center" });
     
     doc.setFontSize(10);
     doc.setFont("helvetica", "italic");
-    doc.text("08 a 11 de maio - Parque Pedro Pereira Durães", pageWidth / 2, 31, { align: "center" });
+    doc.text("07 a 10 de maio - Parque de Vaquejada Pedro Pereira Durães", pageWidth / 2, 31, { align: "center" });
     
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
@@ -696,23 +704,24 @@ async function imprimirRelatorioSenhas() {
                 yOffset += 4.5;
                 
                 doc.setFontSize(8);
-                const desc = [];
-                if (puxador.nomeCompleto) desc.push(`${puxador.nomeCompleto}`);
-                if (puxador.dataNascimento) desc.push(`${verIdade(puxador.dataNascimento)} anos`);
-                
-                const line2 = desc.join(" | ");
+                const line2 = puxador.nomeCompleto;
                 if (line2) {
                     doc.text(line2, centerX, yOffset, { align: "center" });
                     yOffset += 4.5;
+                }
+
+                if (puxador.dataNascimento) {
+                    doc.text(verIdade(puxador.dataNascimento) + " anos", centerX, yOffset, { align: "center" });
+                    yOffset += 6;
                 }
                 
                 if (animalP) {
                     doc.setFont("helvetica", "italic");
                     const animalNome = animalP.nome.toUpperCase().substring(0, 16);
-                    doc.text(`🏇 ${animalNome}`, centerX, yOffset, { align: "center" });
+                    doc.text(`${animalNome}`, centerX, yOffset, { align: "center" });
                 }
             } else {
-                doc.setFillColor(120, 120, 120);
+                doc.setFillColor(220, 220, 220);
                 doc.rect(cellX, cellY + 18, colWidth, rowHeight - 18, 'F');
                 doc.rect(cellX, cellY + 18, colWidth, rowHeight - 18);
             }
@@ -731,6 +740,116 @@ async function imprimirRelatorioSenhas() {
   doc.save(`mapa_senhas_${selectedLote?.inicio}_ate_${selectedLote?.fim}.pdf`);
 }
 
+async function imprimirSenhas() {
+  if (!selectedLote) return;
+
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4"
+  });
+ 
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const logoEsquerdo = await getBase64FromUrl("/brasao-lagoa.jpg").catch(()=>null); 
+  const logoDireito = await getBase64FromUrl("/logo-administracao.jpg").catch(()=>null);
+  
+  const tableData = filteredSenhas.map(senha => {
+    const puxador = data.vaqueiros.find((v: any) => v.id === senha.puxadorId);
+    const animalP = data.animais.find((a: any) => a.id === senha.animalPuxadorId);
+    
+    return [
+      `${senha.numero}.`,
+      puxador?.nomeCompleto?.toUpperCase() || "",
+      puxador?.apelido?.toUpperCase() || "",
+      puxador?.dataNascimento ? `${verIdade(puxador.dataNascimento)}` : "",
+      animalP?.nome?.toUpperCase() || "",
+      animalP?.raca?.toUpperCase() || "",
+      animalP?.cor?.toUpperCase() || ""
+    ];
+  });
+
+  // @ts-ignore
+  autoTable(doc, {
+    startY: 55,
+    head: [['SE.', 'NOME COMPLETO PUXADOR', 'APELIDO', 'ID', 'CAVALO', 'RAÇA', 'COR']],
+    body: tableData,
+    theme: 'grid',
+    headStyles: { 
+      fillColor: [255, 255, 255], 
+      textColor: [0, 0, 0], 
+      fontStyle: 'bold', 
+      halign: 'center',
+      lineWidth: 0.2,
+      lineColor: [0, 0, 0]
+    },
+    styles: { 
+      fontSize: 8, 
+      cellPadding: 1.5, 
+      valign: 'middle',
+      font: 'helvetica',
+      lineWidth: 0.1,
+      lineColor: [0, 0, 0],
+      textColor: [0, 0, 0]
+    },
+    columnStyles: {
+      0: { cellWidth: 10, halign: 'center' },
+      1: { cellWidth: 'auto' }, // Nome Completo Puxador
+      2: { cellWidth: 25 },
+      3: { cellWidth: 10, halign: 'center' },
+      4: { cellWidth: 25 },
+      5: { cellWidth: 20 },
+      6: { cellWidth: 15 }
+    },
+    margin: { top: 55, bottom: 20 },
+    didDrawPage: (dataArg: any) => {
+      // Header
+      if (logoEsquerdo) {
+        doc.addImage(logoEsquerdo, 'JPG', 10, 5, 20, 20); 
+      }
+      if (logoDireito) {
+        doc.addImage(logoDireito, 'JPG', pageWidth - 30, 5, 20, 20);
+      }
+      
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.text("PREFEITURA MUNICIPAL DE LAGOA DOS PATOS", pageWidth / 2, 12, { align: "center" });
+      
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text("PRAÇA 31 DE MARÇO, 111 – CENTRO | TEL. (38) 3745-1239", pageWidth / 2, 17, { align: "center" });
+      
+      doc.setLineWidth(0.5);
+      doc.line(60, 22, pageWidth - 60, 22);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.text("VAQUEJADA NACIONAL DE LAGOA DOS PATOS - 2026", pageWidth / 2, 28, { align: "center" });
+      
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "italic");
+      doc.text("07 a 10 de maio – Parque de Vaquejada Pedro Pereira Durães", pageWidth / 2, 33, { align: "center" });
+      
+      doc.setFontSize(13);
+      doc.setFont("helvetica", "bold");
+      doc.text("RELAÇÃO DE VAQUEIROS INSCRITOS", pageWidth / 2, 42, { align: "center" });
+      
+      doc.setFontSize(10);
+      doc.text("CATEGORIA MUNICIPAL", pageWidth / 2, 47, { align: "center" });
+      doc.line(pageWidth / 2 - 20, 48, pageWidth / 2 + 20, 48);
+
+      // Footer
+      const str = "* Para validação da inscrição (pela comissão), deverá ser anexada junto a esta ficha, cópia legível de documento (com foto) do competidor, ";
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.text(str, 15, doc.internal.pageSize.height - 10);
+      doc.text('comprovante de endereço e título de eleitor.', 15, doc.internal.pageSize.height - 6);
+
+    }
+  });
+
+  doc.save(`relatorio_senhas_${selectedLote.inicio}_ate_${selectedLote.fim}.pdf`);
+}
+
 // Derived: check if selected puxador is minor without responsible
 let puxadorMenorSemResponsavel = $derived(() => {
   if (!puxadorId) return false;
@@ -745,22 +864,108 @@ let puxadorMenorSemResponsavel = $derived(() => {
   if (idade >= 18) return false;
   return !pux.responsavelId;
 });
+let verLoad = $state(false)
 </script>
 
+<Loading show={verLoad} />
+
 <div class="senhas-page">
+  <div>
+    <h1>Gestão de Senhas</h1>
+    <p>Gere sequências de números e vincule-os aos competidores.</p>
+  </div>
   <header class="page-header">
-    <div>
-      <h1>Gestão de Senhas</h1>
-      <p>Gere sequências de números e vincule-os aos competidores.</p>
+    <form 
+  method="POST" 
+  action="?/gerar" 
+  use:enhance={() => {
+    
+      verLoad = true;
+
+    return async ({ update }) => {
+      // 2. Quando a resposta chegar do servidor, o update() atualiza os dados da página
+      await update();
+      window.location.reload();
+      // 3. Desligamos o loading
+      verLoad = false;
+    };
+    
+  }}
+  class="bg-slate-900/50 backdrop-blur-md p-6 rounded-2xl border border-white/10 shadow-2xl max-w-2xl"
+>
+  <div class="flex flex-col sm:flex-row items-end gap-4">
+    
+    <div class="flex-1 w-full">
+      <label for="inicio" class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">
+        Início
+      </label>
+      <input 
+        type="number" 
+        id="inicio"
+        maxlength="5"
+        name="inicio" 
+        placeholder="001" 
+        class="w-full bg-slate-800/50 border border-slate-700 text-white text-sm rounded-xl px-4 py-3 
+               focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all
+               placeholder:text-slate-600" 
+        required 
+      />
     </div>
-    <form method="POST" action="?/gerar" use:enhance class="generator-form">
+
+    <div class="flex-1 w-full">
+      <label for="fim" class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">
+        Fim
+      </label>
+      <input 
+        type="number" 
+        id="fim"
+        maxlength="5"
+        name="fim" 
+        placeholder="100" 
+        class="w-full bg-slate-800/50 border border-slate-700 text-white text-sm rounded-xl px-4 py-3 
+               focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all
+               placeholder:text-slate-600" 
+        required 
+      />
+    </div>
+
+    <div class="flex-1 w-full">
+      <label for="data" class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">
+        Data do Evento
+      </label>
+      <input 
+        type="date" 
+        id="data"
+        name="data" 
+        class="w-full bg-slate-800/50 border border-slate-700 text-white text-sm rounded-xl px-4 py-3 
+               focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all
+               [color-scheme:dark]" 
+        required 
+      />
+    </div>
+
+    <button 
+      type="submit" 
+      class="w-full sm:w-auto px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl
+             shadow-lg shadow-indigo-900/20 transition-all duration-300 active:scale-95 whitespace-nowrap"
+    >
+      Gerar Sequência
+    </button>
+
+  </div>
+</form>
+    <!-- <form method="POST" action="?/gerar" use:enhance = (update)=>{
+
+      update()
+    } >
+    class="generator-form">
       <div class="input-row">
         <input type="number" name="inicio" placeholder="De" class="premium-input" required />
         <input type="number" name="fim" placeholder="Até" class="premium-input" required />
         <input type="date" name="data" class="premium-input" required />
       </div>
       <button type="submit" class="premium-button">Gerar Sequência</button>
-    </form>
+    </form> -->
   </header>
 
   {#if !selectedLote}
@@ -768,13 +973,39 @@ let puxadorMenorSemResponsavel = $derived(() => {
       <h3>Sequências Geradas</h3>
       <div class="lotes-list">
         {#each data.lotes as lote}
-          <button class="lote-link premium-card" onclick={() => selectedLote = lote}>
-            <div class="lote-info">
-              <span class="lote-title">Sequência #{lote.inicio} ao #{lote.fim}</span>
-              <span class="lote-date">Competição: {lote.dataCompeticao}</span>
-            </div>
-            <span class="lote-arrow">Ver Senhas →</span>
-          </button>
+          <div class="relative group">
+            <button class="lote-link premium-card w-full" onclick={() => selectedLote = lote}>
+              <div class="lote-info">
+                <span class="lote-title">Sequência #{lote.inicio} ao #{lote.fim}</span>
+                <span class="lote-date">Competição: {lote.dataCompeticao}</span>
+              </div>
+              <span class="lote-arrow mr-10">Ver Senhas →</span>
+            </button>
+            
+            <form 
+              method="POST" 
+              action="?/removerLote" 
+              use:enhance={() => {
+                if (!confirm(`Tem certeza que deseja APAGAR toda a sequência #${lote.inicio}-${lote.fim}?\n\nIsso removerá todas as senhas geradas para este lote.`)) return;
+                verLoad = true;
+                return async ({ update }) => {
+                  await update();
+                  verLoad = false;
+                };
+              }}
+              class="absolute right-4 top-1/2 -translate-y-1/2 z-10"
+            >
+              <input type="hidden" name="loteId" value={lote.id} />
+              <button 
+                type="submit" 
+                class="p-2 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white rounded-lg transition-all duration-300 opacity-0 group-hover:opacity-100"
+                title="Apagar Sequência"
+                onclick={(e) => e.stopPropagation()}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+              </button>
+            </form>
+          </div>
         {:else}
           <div class="empty-state">Nenhuma sequência gerada ainda.</div>
         {/each}
@@ -784,10 +1015,116 @@ let puxadorMenorSemResponsavel = $derived(() => {
     <div class="batch-detail-header">
         <button class="premium-button secondary" onclick={() => selectedLote = null}>← Voltar aos Lotes</button>
         <h2>Sequência #{selectedLote.inicio} - #{selectedLote.fim} ({selectedLote.dataCompeticao})</h2>
-        <button class="premium-button secondary" onclick={imprimirRelatorioSenhas}>Imprimir</button>
+        <div class="header-actions flex gap-5">
+          <button class="premium-button secondary" onclick={imprimirMapaSenhas}>Mapa de Senhas</button>
+          <button class="premium-button terciary" onclick={imprimirSenhas}>Relatório de Senhas</button>
+        </div>
     </div>
 
-    <div class="flex flex-wrap gap-6 p-4">
+    <div class="flex flex-wrap gap-6 p-6 bg-slate-950 min-h-screen justify-between">
+  {#each filteredSenhas as senha}
+    {@const puxador = data?.vaqueiros?.find(v => v.id === senha?.puxadorId)}
+    {@const isMenor = () => {
+      if(!puxador?.dataNascimento) return false;
+      const [year, month, day] = puxador.dataNascimento.split('-').map(Number);
+      const nasc = new Date(year, month - 1, day);
+      const hoje = new Date();
+      let idade = hoje.getFullYear() - nasc.getFullYear();
+      const m = hoje.getMonth() - nasc.getMonth();
+      if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--;
+      return idade < 18;
+    }}
+
+    <div class="group relative w-full sm:w-[300px]">
+      <div
+        class="w-full relative overflow-hidden transition-all duration-500 border rounded-2xl p-5
+               {senha.status === 'vinculado' 
+                ? 'border-emerald-500/30 shadow-[0_10px_30px_-15px_rgba(16,185,129,0.3)] bg-gradient-to-br from-emerald-900 to-slate-900' 
+                : 'border-slate-800 bg-white/5 backdrop-blur-sm border-dashed hover:border-emerald-500/50'}"
+      >
+        <div class="absolute top-4 right-4">
+          <span class="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded-full border
+            {senha.status === 'vinculado' 
+              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' 
+              : 'bg-slate-800 text-slate-400 border-slate-700'}">
+            {senha.status === 'vinculado' ? 'Ocupada' : 'Livre'}
+          </span>
+        </div>
+
+        <button 
+          onclick={() => openLinkModal(senha)}
+          class="w-full text-left mb-6"
+        >
+          <div class="flex items-center gap-4">
+            <div class="flex flex-col items-center justify-center min-w-[65px] h-[65px] rounded-2xl 
+              {senha.status === 'vinculado' 
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/40' 
+                : 'bg-slate-800 text-slate-500'} 
+              group-hover:scale-110 transition-transform duration-300">
+              <span class="text-[9px] uppercase font-black opacity-70">Senha</span>
+              <span class="text-2xl font-black">{senha.numero}</span>
+            </div>
+
+            <div class="flex-1 min-w-0">
+              <p class="text-[10px] font-bold text-emerald-400/70 uppercase tracking-widest mb-0.5">
+                {puxador ? 'Competidor' : 'Status'}
+              </p>
+              <h3 class="text-xl font-bold text-white truncate leading-tight">
+                {puxador?.apelido || 'Disponível'}
+              </h3>
+              {#if puxador}
+                <p class="text-[11px] text-slate-400 truncate mt-1 font-medium italic">
+                  {puxador.nomeCompleto.toUpperCase()}
+                </p>
+              {/if}
+            </div>
+          </div>
+        </button>
+
+        {#if senha.status === 'vinculado'}
+          <div class="pt-4 border-t border-white/5">
+            <p class="text-[9px] font-black text-slate-500 uppercase mb-3 tracking-[0.2em]">Documentação</p>
+            <div class="grid {isMenor() ? 'grid-cols-3' : 'grid-cols-2'} gap-3">
+              
+              <button 
+                title="Ficha de Inscrição"
+                class="flex items-center justify-center py-2.5 bg-white/5 hover:bg-indigo-600 rounded-xl transition-all duration-300 group/btn shadow-inner border border-white/5"
+                onclick={(e) => { e.stopPropagation(); printVoucher(senha); }}>
+                <span class="text-lg group-hover/btn:scale-125 transition-transform">📝</span>
+              </button>
+
+              <button 
+                title="Senha para Juízes"
+                class="flex items-center justify-center py-2.5 bg-white/5 hover:bg-amber-500 rounded-xl transition-all duration-300 group/btn shadow-inner border border-white/5"
+                onclick={(e) => { e.stopPropagation(); senhaJuizes(senha); }}>
+                <span class="text-lg group-hover/btn:scale-125 transition-transform">⚖️</span>
+              </button>
+
+              {#if isMenor()}
+                <button 
+                  title="Autorização de Menor"
+                  class="flex items-center justify-center py-2.5 bg-white/5 hover:bg-emerald-500 rounded-xl transition-all duration-300 group/btn shadow-inner border border-white/5"
+                  onclick={(e) => { e.stopPropagation(); autorizacaoMenor(senha); }}>
+                  <span class="text-lg group-hover/btn:scale-125 transition-transform">📜</span>
+                </button>
+              {/if}
+
+            </div>
+          </div>
+        {:else}
+          <div class="mt-2 py-4 text-center border-t border-white/5">
+             <span class="text-[10px] font-bold text-slate-600 uppercase tracking-widest block">
+               Aguardando Vínculo
+             </span>
+             <span class="text-[9px] text-slate-700 italic">liberação automática de docs</span>
+          </div>
+        {/if}
+      </div>
+    </div>
+  {/each}
+</div>
+
+    <!-- <div class="flex flex-wrap gap-6 p-4">
   {#each filteredSenhas as senha}
     {@const puxador = data?.vaqueiros?.find(v => v.id === senha?.puxadorId)}
     {@const isMenor = () =>{
@@ -879,9 +1216,9 @@ let puxadorMenorSemResponsavel = $derived(() => {
           </div>
         {/if}
       </div>
-    </div>
-  {/each}
-</div>
+      </div> 
+      {/each}-->
+<!-- </div> -->
   {/if}
 </div>
 
@@ -1072,5 +1409,6 @@ let puxadorMenorSemResponsavel = $derived(() => {
   .modal-actions { display: flex; gap: 0.75rem; margin-top: 1rem; }
   
   .premium-button.secondary { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); }
+  .premium-button.terciary { background: rgba(7, 173, 48, 0.61); border: 1px solid rgba(255,255,255,0.2); }
   .premium-button.danger { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); }
 </style>

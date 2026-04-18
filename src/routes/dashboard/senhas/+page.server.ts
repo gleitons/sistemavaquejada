@@ -105,5 +105,24 @@ export const actions = {
         } catch (e: any) {
             return fail(400, { error: 'Erro ao remover' });
         }
+    },
+
+    removerLote: async ({ request }) => {
+        const formData = await request.formData();
+        const loteId = formData.get('loteId') as string;
+
+        if (!loteId) return fail(400, { error: 'ID do lote não fornecido' });
+
+        try {
+            // 1. Remover todas as senhas vinculadas ao lote
+            await db.delete(senhas).where(eq(senhas.loteId, loteId));
+            
+            // 2. Remover o lote
+            await db.delete(lotes).where(eq(lotes.id, loteId));
+
+            return { success: true };
+        } catch (e: any) {
+            return fail(400, { error: 'Erro ao remover lote' });
+        }
     }
 };

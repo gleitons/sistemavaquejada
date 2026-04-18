@@ -56,6 +56,7 @@
   }
 
   function startEdit(v: any) {
+    window.location.href = "#editar";
     editingVaqueiro = v;
     responsavelId = v.responsavelId || "";
     grauParentesco = v.grauParentesco || "";
@@ -98,7 +99,7 @@
         <h1>Vaqueiros</h1>
         <p>Gerenciamento de competidores</p>
     </div>
-    <button class="premium-button" onclick={showForm ? closeForm : () => showForm = true}>
+    <button id="editar" class="premium-button" onclick={showForm ? closeForm : () => showForm = true}>
         {showForm ? 'Fechar Formulário' : '+ Novo Vaqueiro'}
     </button>
   </div>
@@ -164,11 +165,11 @@
           </div>
           <div class="input-group">
             <label for="cidade">Cidade</label>
-            <input id="cidade" name="cidade" value={editingVaqueiro?.cidade || ''} class="premium-input" />
+            <input id="cidade" name="cidade" value={editingVaqueiro?.cidade || 'LAGOA DOS PATOS MG'} class="premium-input" />
           </div>
           <div class="input-group">
             <label for="cep">CEP</label>
-            <input id="cep" name="cep" value={editingVaqueiro?.cep || ''} class="premium-input" />
+            <input id="cep" name="cep" value={editingVaqueiro?.cep || '39.360-000'} class="premium-input" />
           </div>
           <div class="input-group">
             <label for="tituloEleitor">Título de Eleitor</label>
@@ -231,10 +232,10 @@
                 onchange={(e) => toggleAnimal(e.currentTarget.value)}
                 value=""
               >
-                <option value="">+ Vincular Animal...</option>
+                <option class="bg-black text-white" value="">+ Vincular Animal...</option>
                 {#each data.animais as a}
                   {#if !selectedAnimais.includes(a.id)}
-                    <option class="premium-input" value={a.id}>{a.nome} ({a.categoria})</option>
+                    <option class="bg-black text-white uppercase" value={a.id}>{a.nome} ({a.categoria})</option>
                   {/if}
                 {/each}
               </select>
@@ -276,16 +277,16 @@
         </tr>
       </thead>
       <tbody>
-        {#each filteredVaqueiros as v}
+        {#each filteredVaqueiros.sort((a, b) => a.nomeCompleto.localeCompare(b.nomeCompleto)) as v}
           <tr>
             <td>{v.cpf}</td>
             <td>
               <div class="name-cell">
-                <span class="main-name">{v.nomeCompleto}</span>
+                <span class="uppercase main-name">{v.nomeCompleto}</span>
                 {#if v.apelido}<span class="nick">"{v.apelido}"</span>{/if}
               </div>
             </td>
-            <td>{v.cidade || '-'} / {v.comunidade || '-'}</td>
+            <td class="uppercase "><p class="truncate  w-48 hover:overflow-visible cursor-pointer">{v.cidade || '-'} / {v.comunidade || '-'}</p></td>
             <td>
               <div class="row-actions">
                 <button class="edit-btn" onclick={() => startEdit(v)}>✏️</button>
