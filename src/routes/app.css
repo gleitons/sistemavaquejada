@@ -21,7 +21,7 @@ body {
 }
 
 .premium-card {
-  background: var(--bg-card);
+ background: rgb(0 0 0 / 64%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border-glass);

@@ -3,6 +3,7 @@
   let showForm = $state(false);
   let editingAnimal = $state<any>(null);
   let search = $state("");
+  import Loading from '../../../components/Loading.svelte';
   let loading = $state(false);
   let selectedVaqueiros = $state<string[]>([]);
 
@@ -39,6 +40,9 @@
   }
 </script>
 
+{#if loading}
+    <Loading show={loading} />
+{/if}
 <div class="animals-page">
   <div class="page-header">
     <div>

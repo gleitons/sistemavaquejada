@@ -26,7 +26,7 @@
     <div class="sidebar-header">
       <span class="logo-icon">🐎</span>
       {#if sidebarOpen}
-        <span class="logo-text">Vaquejada<span>Elite</span></span>
+        <span class="logo-text">Vaquejada<span></span></span>
       {/if}
     </div>
 
@@ -42,12 +42,20 @@
     </nav>
 
     <div class="sidebar-footer">
-      <button onclick={handleLogout} class="logout-btn">
+      <!-- <button onclick={handleLogout} class="logout-btn">
         <span class="icon">🚪</span>
         {#if sidebarOpen}
           <span>Sair</span>
         {/if}
-      </button>
+      </button> -->
+      <a href="/">
+        <button class="logout-btn">
+          <span class="icon">🚪</span>
+          {#if sidebarOpen}
+            <span>Sair</span>
+          {/if}
+        </button>
+      </a>
     </div>
   </aside>
 

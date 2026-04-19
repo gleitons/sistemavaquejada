@@ -1,6 +1,7 @@
 <script lang="ts">
   import { invalidateAll } from '$app/navigation';
   import type { PageData } from './$types';
+  import Loading from '../../../components/Loading.svelte';
   
   let { data, form }: { data: PageData, form: any } = $props();
   
@@ -93,6 +94,9 @@
   }
 </script>
 
+{#if loading}
+    <Loading show={loading} />
+{/if}
 <div class="cowboys-page">
   <div class="page-header">
     <div>

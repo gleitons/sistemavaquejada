@@ -4,8 +4,9 @@
 
 <div class="dashboard-home">
   <div class="header-section">
-    <h1>Olá, Administrador 👋</h1>
-    <p>Bem-vindo ao Sistema Vaquejada Elite. Veja o resumo geral abaixo.</p>
+    <!-- <h1>Olá, Administrador 👋</h1> -->
+    <h1>Painel</h1>
+    <!-- <p>Bem-vindo ao Sistema Vaquejada Elite. Veja o resumo geral abaixo.</p> -->
   </div>
 
    <div class="recent-actions premium-card">

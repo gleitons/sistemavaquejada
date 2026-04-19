@@ -107,6 +107,29 @@ export const actions = {
         }
     },
 
+    desvincular: async ({ request }) => {
+        const formData = await request.formData();
+        const id = formData.get('id') as string;
+
+        if (!id) return fail(400, { error: 'ID não fornecido' });
+
+        try {
+            await db.update(senhas)
+                .set({
+                    vaqueiroPuxadorId: null,
+                    animalPuxadorId: null,
+                    vaqueiroEsteiraId: null,
+                    animalEsteiraId: null,
+                    dataCompeticao: null,
+                    status: 'disponivel'
+                })
+                .where(eq(senhas.id, id));
+            return { success: true };
+        } catch (e: any) {
+            return fail(400, { error: 'Erro ao desvincular senha' });
+        }
+    },
+
     removerLote: async ({ request }) => {
         const formData = await request.formData();
         const loteId = formData.get('loteId') as string;

@@ -7,7 +7,7 @@ import Loading from "../../../components/Loading.svelte";
 
   let { data, form } = $props();
 
-  console.log(data);
+  // console.log(data);
 
   let showModal = $state(false);
   let selectedSenha = $state<any>(null);
@@ -44,7 +44,7 @@ import Loading from "../../../components/Loading.svelte";
 }
 
   function openLinkModal(senha: any) {
-    console.log(senha);
+    // console.log(senha);
     selectedSenha = senha;
     puxadorId = senha.puxadorId || "";
     animalPuxadorId = senha.animalPuxadorId || "";
@@ -296,6 +296,8 @@ async function senhaJuizes(senha: any) {
 
   const logoEsquerdo = await getBase64FromUrl("/brasao-lagoa.jpg").catch(()=>null); 
   const logoDireito = await getBase64FromUrl("/logo-administracao.jpg").catch(()=>null);
+  // const imageVaqueiro = await getBase64FromUrl("/vaqueiro.jpg").catch(()=>null);
+  // const imageVaqueira = await getBase64FromUrl("/vaqueira.jpg").catch(()=>null);
 
   function drawCard(yOff: number) {
     const cx = 105; // center X
@@ -306,6 +308,14 @@ async function senhaJuizes(senha: any) {
     if (logoDireito) {
       doc.addImage(logoDireito, 'JPG', 180, yOff + 10, 25, 12);
     }
+
+    // console.log(puxador?.genero)
+
+    // if (puxador?.genero === "Masculino") {
+    //   doc.addImage(imageVaqueiro, 'JPG', 10, yOff + 30, 5, 15);
+    // } else {
+    //   doc.addImage(imageVaqueira, 'JPG', 10, yOff + 30, 5, 12);
+    // }
 
     // --- CABEÇALHO ---
     doc.setFont("helvetica", "bold");
@@ -361,7 +371,7 @@ async function senhaJuizes(senha: any) {
     }
 
     // VAQUEIRO
-    addRow("Vaqueiro (Puxador)", `${puxador?.nomeCompleto || "---"} (${puxador?.apelido || "n/a"})`);
+    addRow(`${puxador?.genero === "Masculino" ? "Vaqueiro" : "Vaqueira"} (Puxador)`, `${puxador?.nomeCompleto || "---"} (${puxador?.apelido || "n/a"})`);
     
     // FILIAÇÃO VAQUEIRO
     const filiacaoV = `Pai: ${puxador?.nomePai || "---"} | Mãe: ${puxador?.nomeMae || "---"}`;
@@ -372,7 +382,7 @@ async function senhaJuizes(senha: any) {
     addRow("Info Vaqueiro", localidade, false);
 
     // ANIMAL
-    const animalInfo = `${animalP?.nome || "---"} | Cor: ${animalP?.cor || "---"} | Raça: ${animalP?.raca || "---"} | Sexo: ${animalP?.sexo || "---"}`;
+    const animalInfo = `Sexo: ${animalP?.sexo || "---"} | Nome: ${animalP?.nome || "---"} | Cor: ${animalP?.cor || "---"} | Raça: ${animalP?.raca || "---"}`;
     addRow("Animal (Puxador)", animalInfo);
 
     // PEDIGREE ANIMAL
@@ -1090,8 +1100,38 @@ let novasSenhas = $state(false)
         </button>
 
         {#if senha.status === 'vinculado'}
-          <div class="pt-4 border-t border-white/5">
-            <p class="text-[9px] font-black text-slate-500 uppercase mb-3 tracking-[0.2em]">Documentação</p>
+          <div class="pt-4 border-t border-white/5 relative">
+            <div class="flex justify-between items-center mb-3">
+              <p class="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-0">Documentação</p>
+              
+              <form 
+                method="POST" 
+                action="?/desvincular" 
+                 use:enhance={() => {
+    
+      verLoad = true;
+
+    return async ({ update }) => {
+      // 2. Quando a resposta chegar do servidor, o update() atualiza os dados da página
+      await update();
+      window.location.reload();
+      // 3. Desligamos o loading
+      verLoad = false;
+    };
+    
+  }}
+              >
+                <input type="hidden" name="id" value={senha.id} />
+                <button 
+                  type="submit" 
+                  title="Resetar e Limpar Senha"
+                  class="flex items-center justify-center p-1.5 bg-rose-500/10 hover:bg-rose-500 text-rose-500 rounded-lg transition-all duration-300 hover:text-white"
+                  onclick={(e) => { e.stopPropagation(); if (!confirm('Tem certeza que deseja limpar esta senha e torná-la disponível novamente?')) e.preventDefault(); }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                </button>
+              </form>
+            </div>
             <div class="grid {isMenor() ? 'grid-cols-3' : 'grid-cols-2'} gap-3">
               
               <button 
@@ -1248,12 +1288,16 @@ let novasSenhas = $state(false)
       
       <form method="POST" action="?/vincular" use:enhance={() => {
         return async ({ result }) => {
+          verLoad = true;
+          
           if (result.type === 'success') {
             await invalidateAll();
             // Find the updated senha in the new data
             const updated = data.senhas.find(s => s.id === selectedSenha.id);
             if (updated) {
-                selectedSenha = updated;
+              selectedSenha = updated;
+              verLoad = false;
+              // window.location.reload();
                 // Auto print after linking
                 // printVoucher(updated);
             }

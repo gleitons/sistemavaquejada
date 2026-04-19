@@ -29,12 +29,12 @@
   }
 </script>
 
-<div class="auth-page">
+<div class="auth-page" style="background-image: url('/fundo.jpg'); background-size: cover; background-position: center;">
   <div class="premium-card auth-card">
     <div class="brand">
-        <span class="brand-logo">🐎</span>
-        <h1>Vaquejada<span>Elite</span></h1>
-        <p>Acesse sua conta</p>
+        <!-- <span class="brand-logo">🐎</span> -->
+        <h1>Vaquejada <span> 2026 de Lagoa dos Patos</span></h1>
+        <!-- <p>Acesse sua conta</p> -->
     </div>
 
     <form onsubmit={(e) => { e.preventDefault(); handleLogin(); }} class="auth-form">
@@ -58,7 +58,7 @@
     </form>
 
     <div class="auth-footer">
-        Ainda não tem conta? <a href="/signup">Cadastre-se</a>
+        <!-- Ainda não tem conta? <a href="/signup">Cadastre-se</a> -->
     </div>
   </div>
 </div>
@@ -95,7 +95,7 @@
     color: #ef4444;
     font-size: 0.85rem;
     text-align: center;
-    background: rgba(239, 68, 68, 0.1);
+    /* background: rgba(239, 68, 68, 0.1); */
     padding: 0.75rem;
     border-radius: 0.5rem;
   }
