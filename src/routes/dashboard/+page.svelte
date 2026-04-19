@@ -8,6 +8,16 @@
     <p>Bem-vindo ao Sistema Vaquejada Elite. Veja o resumo geral abaixo.</p>
   </div>
 
+   <div class="recent-actions premium-card">
+      <h2>Ações Rápidas</h2>
+      <div class="action-buttons">
+          <a href="/dashboard/vaqueiros" class="premium-button">Registrar Vaqueiro</a>
+          <a href="/dashboard/animais" class="premium-button secondary">Registrar Animal</a>
+          <a href="/dashboard/senhas" class="premium-button secondary">Gerir Senhas</a>
+          <a href="/dashboard/relatorios" class="premium-button tertiary">Emitir Relatórios</a>
+      </div>
+  </div>
+
   <div class="stats-grid">
     <div class="stat-card premium-card">
       <div class="stat-icon">🤠</div>
@@ -25,7 +35,7 @@
       </div>
     </div>
 
-    <div class="stat-card premium-card">
+    <!-- <div class="stat-card premium-card">
       <div class="stat-icon">🏆</div>
       <div class="stat-content">
         <span class="label">Competições Abertas</span>
@@ -39,26 +49,18 @@
         <span class="label">Senhas Geradas</span>
         <span class="value">{data.stats.senhas}</span>
       </div>
-    </div>
+    </div> -->
 
-    <div class="stat-card premium-card">
+    <!-- <div class="stat-card premium-card">
       <div class="stat-icon">💰</div>
       <div class="stat-content">
         <span class="label">Premiação Estimada</span>
         <span class="value">{data.stats.premios}</span>
       </div>
-    </div>
+    </div> -->
   </div>
 
-  <div class="recent-actions premium-card">
-      <h2>Ações Rápidas</h2>
-      <div class="action-buttons">
-          <a href="/dashboard/vaqueiros" class="premium-button">Registrar Vaqueiro</a>
-          <a href="/dashboard/animais" class="premium-button secondary">Registrar Animal</a>
-          <a href="/dashboard/senhas" class="premium-button secondary">Gerir Senhas</a>
-          <a href="/dashboard/relatorios" class="premium-button tertiary">Emitir Relatórios</a>
-      </div>
-  </div>
+ 
 </div>
 
 <style>

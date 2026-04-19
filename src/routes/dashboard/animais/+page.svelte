@@ -71,6 +71,15 @@
             <input id="raca" name="raca" value={editingAnimal?.raca || ''} class="premium-input" />
           </div>
           <div class="input-group">
+            <label for="sexo">Sexo</label>
+            <select id="sexo" required name="sexo" value={editingAnimal?.sexo || ''} class="premium-input">
+              <option value="">Selecione...</option>
+              <option value="Macho">Macho</option>
+              <option value="Fêmea">Fêmea</option>
+              <option value="Castrado">Macho Castrado</option>
+            </select>
+          </div>
+          <div class="input-group">
             <label for="dataNascAn">Data Nascimento</label>
             <input id="dataNascAn" name="dataNascimento" type="date" value={editingAnimal?.dataNascimento || ''} class="premium-input" />
           </div>
@@ -158,21 +167,21 @@
       <thead>
         <tr>
           <th>Nome</th>
-          <th>Raça / Cor</th>
+          <th>Raça / Cor / Sexo</th>
           <th>Vaqueiro</th>
           <th>Ações</th>
         </tr>
       </thead>
       <tbody>
-        {#each filteredAnimais as a}
-          <tr>
+        {#each filteredAnimais.sort((a, b) => a.nome.localeCompare(b.nome)) as a, index}
+          <tr class="{index % 2 === 0 ? 'bg-gray-800' : ''}">
             <td>
               <div class="name-cell">
-                <span class="main-name">{a.nome}</span>
+                <span class="main-name uppercase  ">{a.nome}</span>
                 <span class="nick">{a.categoria}</span>
               </div>
             </td>
-            <td>{a.raca || '-'} / {a.cor || '-'}</td>
+            <td>{a.raca || '-'} / {a.cor || '-'} / {a.sexo?.slice(0, 1).toUpperCase() || '-'}</td>
             <td>
               <div class="name-cell">
                 {#each (a.vaqueiros || []) as v}
@@ -215,8 +224,8 @@
   .search-bar input { width: 100%; }
 
   .premium-table { width: 100%; border-collapse: collapse; text-align: left; }
-  .premium-table th { padding: 1rem; border-bottom: 1px solid var(--border-glass); color: var(--text-muted); font-size: 0.85rem; font-weight: 600; }
-  .premium-table td { padding: 1rem; border-bottom: 1px solid var(--border-glass); font-size: 0.95rem; }
+  .premium-table th { padding: 1rem; border-bottom: 1px solid var(--border-glass);  border-left: 1px solid var(--border-glass); color: var(--text-muted); font-size: 0.85rem; font-weight: 600; }
+  .premium-table td { padding: 1rem; border-bottom: 1px solid var(--border-glass); border-left: 1px solid var(--border-glass); font-size: 0.95rem; }
   
   .name-cell { display: flex; flex-direction: column; }
   .nick { color: var(--primary); font-size: 0.8rem; font-weight: 600; text-transform: capitalize; }

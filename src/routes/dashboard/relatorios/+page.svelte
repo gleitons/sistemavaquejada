@@ -14,65 +14,85 @@
   }
 
   function exportVaqueiros() {
-    const doc = new jsPDF({ orientation: 'landscape' });
-    doc.text("Relação de Vaqueiros Inscritos", 14, 15);
-    
-    const body = data.vaqueiros.map((v: any, index: number) => {
-      const senhasDoVaqueiro = data.senhas?.filter((s: any) => s.vaqueiroPuxadorId === v.id || s.vaqueiroEsteiraId === v.id).map((s: any) => s.numero).join(", ") || "-";
-      const cpfVaqueiro = v.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-      const cavalos = v.animaisAtribuidos?.map((a: any) => a.animal?.nome || "-").join(", ") || "-";
-      const cores = v.animaisAtribuidos?.map((a: any) => a.animal?.cor || "-").join(", ") || "-";
-      const racas = v.animaisAtribuidos?.map((a: any) => a.animal?.raca || "-").join(", ") || "-";
-      
-      return [
-        index + 1,
-        cpfVaqueiro,
-        v.nomeCompleto.toUpperCase(),
-        v.apelido.toUpperCase() || "-",
-        `${calcularIdade(v.dataNascimento)} anos`,
-        cavalos.toUpperCase(),
-        cores.toUpperCase(),
-        racas.toUpperCase()
-      ];
-    });
-    body.sort((a: any, b: any) => a[2].localeCompare(b[2]));
-    autoTable(doc, {
-        head: [['Nº', 'Senha(s)', 'Nome', 'Apelido', 'Idade', 'Cavalo(s)', 'Cor', 'Raça']],
-        body: body,
-        startY: 20,
-        styles: { fontSize: 8 },
-        headStyles: { fillColor: [41, 128, 185] }
-    });
-    doc.save("vaqueiros.pdf");
-  }
+  const doc = new jsPDF({ orientation: 'landscape' });
+  doc.text("Relação de Vaqueiros Inscritos", 14, 15);
 
-  function exportAnimais() {
+  // 1. Primeiro, ordenamos a lista original por nome completo
+  const vaqueirosOrdenados = [...data.vaqueiros].sort((a, b) =>
+    a.nomeCompleto.localeCompare(b.nomeCompleto)
+  );
+
+  // 2. Agora mapeamos os dados já na ordem correta
+  const body = vaqueirosOrdenados.map((v: any, index: number) => {
+    const senhasDoVaqueiro = data.senhas
+      ?.filter((s: any) => s.vaqueiroPuxadorId === v.id || s.vaqueiroEsteiraId === v.id)
+      .map((s: any) => s.numero)
+      .join(", ") || "-";
+
+    const cavalos = v.animaisAtribuidos?.map((a: any) => a.animal?.nome || "-").join(", ") || "-";
+    const cores = v.animaisAtribuidos?.map((a: any) => a.animal?.cor || "-").join(", ") || "-";
+    const racas = v.animaisAtribuidos?.map((a: any) => a.animal?.raca || "-").join(", ") || "-";
+
+    return [
+      index + 1, // Índice sequencial agora alinhado ao nome
+      v.cpf, // Coluna 2 conforme o seu cabeçalho (Head)
+      v.nomeCompleto.toUpperCase(),
+      v.apelido?.toUpperCase() || "-",
+      v.dataNascimento ? `${calcularIdade(v.dataNascimento)} anos` : "-",
+      cavalos.toUpperCase(),
+      cores.toUpperCase(),
+      racas.toUpperCase()
+    ];
+  });
+
+  autoTable(doc, {
+    head: [['Nº', 'CPF', 'Nome', 'Apelido', 'Idade', 'Cavalo(s)', 'Cor', 'Raça']],
+    body: body,
+    startY: 20,
+    styles: { fontSize: 8 },
+    headStyles: { fillColor: [41, 128, 185] } // Azul
+  });
+
+  doc.save("vaqueiros.pdf");
+}
+
+ function exportAnimais() {
     const doc = new jsPDF({ orientation: 'landscape' });
     doc.text("Relação Detalhada de Animais", 14, 15);
-    
-    const body = data.animais.map((a: any, index: number) => {
-      const donos = a.vaqueirosAtribuidos?.map((v: any) => v.vaqueiro?.nomeCompleto || "-").join(", ") || "-";
-      return [
-        index + 1,
-        a.nome,
-        a.categoria || "-",
-        a.cor || "-",
-        a.raca || "-",
-        a.dataNascimento ? `${calcularIdade(a.dataNascimento)} anos` : "-",
-        a.pai || "-",
-        donos
-      ];
+
+    // 1. Primeiro, criamos uma cópia organizada por nome
+    const animaisOrdenados = [...data.animais].sort((a, b) => 
+        a.nome.localeCompare(b.nome)
+    );
+
+    // 2. Agora mapeamos para o formato da tabela
+    // O 'index' aqui já seguirá a ordem alfabética
+    const body = animaisOrdenados.map((a: any, index: number) => {
+        const donos = a.vaqueirosAtribuidos?.map((v: any) => v.vaqueiro?.nomeCompleto || "-").join(", ") || "-";
+        
+        return [
+            index + 1, // Índice sequencial correto
+            a.nome.toUpperCase(),
+            a.categoria?.toUpperCase() || "-",
+            a.sexo?.toUpperCase() || "-",
+            a.cor?.toUpperCase() || "-",
+            a.raca?.toUpperCase() || "-",
+            a.dataNascimento ? `${calcularIdade(a.dataNascimento)} anos` : "-",
+            a.pai?.toUpperCase() || "-",
+            donos.split(", ").map((d: any) => d.toUpperCase()).join(", ")
+        ];
     });
 
     autoTable(doc, {
-        head: [['Nº', 'Nome', 'Categoria', 'Cor', 'Raça', 'Idade', 'Pai', 'Vaqueiro(s)']],
+        head: [['Nº', 'Nome', 'Categoria', 'Sexo','Cor', 'Raça', 'Idade', 'Pai', 'Vaqueiro(s)']],
         body: body,
         startY: 20,
         styles: { fontSize: 8 },
-        headStyles: { fillColor: [39, 174, 96] }
+        headStyles: { fillColor: [120, 120, 120] }
     });
+
     doc.save("animais.pdf");
-  }
+}
 </script>
 
 <div class="reports-page">

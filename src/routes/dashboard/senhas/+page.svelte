@@ -200,9 +200,10 @@ async function printVoucher(senha: any) {
   doc.text("IDADE", 72, 83);
   doc.text("ANIMAIS VINCULADOS NESTE CPF", 132, 83);
   doc.setFontSize(9);
+  // {console.log(puxador?.sexo)}
   const dataNasc = puxador?.dataNascimento ? puxador.dataNascimento.split('-').reverse().join('/') : "---";
   doc.text(dataNasc, 12, 88);
-  doc.text(`${calcularIdade(puxador?.dataNascimento)} anos`, 72, 88);
+  doc.text(`${calcularIdade(puxador?.dataNascimento)} anos - ${puxador?.genero?.toUpperCase() || "---"}`, 72, 88);
   doc.text(`${cavalosVinculados} animal(is)`, 132, 88);
 
   // Linha 3: CPF, Identidade e Telefone
@@ -371,7 +372,7 @@ async function senhaJuizes(senha: any) {
     addRow("Info Vaqueiro", localidade, false);
 
     // ANIMAL
-    const animalInfo = `${animalP?.nome || "---"} | Cor: ${animalP?.cor || "---"} | Raça: ${animalP?.raca || "---"}`;
+    const animalInfo = `${animalP?.nome || "---"} | Cor: ${animalP?.cor || "---"} | Raça: ${animalP?.raca || "---"} | Sexo: ${animalP?.sexo || "---"}`;
     addRow("Animal (Puxador)", animalInfo);
 
     // PEDIGREE ANIMAL
@@ -865,6 +866,7 @@ let puxadorMenorSemResponsavel = $derived(() => {
   return !pux.responsavelId;
 });
 let verLoad = $state(false)
+let novasSenhas = $state(false)
 </script>
 
 <Loading show={verLoad} />
@@ -873,8 +875,13 @@ let verLoad = $state(false)
   <div>
     <h1>Gestão de Senhas</h1>
     <p>Gere sequências de números e vincule-os aos competidores.</p>
+     <button class="text-2xl cursor-pointer bg-green-900/50 backdrop-blur-md  p-2 rounded-full border border-white/10 shadow-2xl w-fit" onclick={() => novasSenhas = !novasSenhas}>✚</button>
   </div>
   <header class="page-header">
+ 
+
+  {#if novasSenhas}
+  
     <form 
   method="POST" 
   action="?/gerar" 
@@ -954,6 +961,7 @@ let verLoad = $state(false)
 
   </div>
 </form>
+{/if}
     <!-- <form method="POST" action="?/gerar" use:enhance = (update)=>{
 
       update()
@@ -1013,11 +1021,11 @@ let verLoad = $state(false)
     </div>
   {:else}
     <div class="batch-detail-header">
-        <button class="premium-button secondary" onclick={() => selectedLote = null}>← Voltar aos Lotes</button>
+        <button class="premium-button secondary" onclick={() => selectedLote = null}>← Voltar</button>
         <h2>Sequência #{selectedLote.inicio} - #{selectedLote.fim} ({selectedLote.dataCompeticao})</h2>
         <div class="header-actions flex gap-5">
-          <button class="premium-button secondary" onclick={imprimirMapaSenhas}>Mapa de Senhas</button>
-          <button class="premium-button terciary" onclick={imprimirSenhas}>Relatório de Senhas</button>
+          <button class="premium-button secondary" onclick={imprimirMapaSenhas}>Mapa</button>
+          <button class="premium-button terciary" onclick={imprimirSenhas}>Relatório</button>
         </div>
     </div>
 
@@ -1352,7 +1360,7 @@ let verLoad = $state(false)
 
 <style>
   .senhas-page { display: flex; flex-direction: column; gap: 2rem; }
-  .page-header { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 2rem; border-radius: 1rem; border: 1px solid var(--border-glass); }
+  .page-header {  justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 2px; border-radius: 1rem; border: 1px solid var(--border-glass); }
   .generator-form { display: flex; flex-direction: column; gap: 1rem; align-items: flex-end; }
   .input-row { display: flex; gap: 0.5rem; }
   .generator-form input { width: 130px; }

@@ -41,6 +41,7 @@ export const actions = {
         const animalIds = formData.getAll('animalIds') as string[];
         
         try {
+            // const cpfVaqueiro :string= data.cpf.replace(/\D/g, '').trim();
             const insertResult = await db.insert(vaqueiros).values({
                 cpf: data.cpf as string,
                 nomeCompleto: data.nomeCompleto as string,
@@ -48,6 +49,7 @@ export const actions = {
                 nomeMae: data.nomeMae as string,
                 nomePai: data.nomePai as string,
                 identidade: data.identidade as string,
+                genero: data.genero as string,
                 dataNascimento: data.dataNascimento as string,
                 telefone: data.telefone as string,
                 logradouro: data.logradouro as string,
@@ -91,6 +93,7 @@ export const actions = {
                     nomeMae: data.nomeMae as string,
                     nomePai: data.nomePai as string,
                     identidade: data.identidade as string,
+                    genero: data.genero as string,
                     dataNascimento: data.dataNascimento as string,
                     telefone: data.telefone as string,
                     logradouro: data.logradouro as string,

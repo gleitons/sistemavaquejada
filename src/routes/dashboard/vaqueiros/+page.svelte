@@ -118,7 +118,8 @@
           </div>
           <div class="input-group">
             <label for="cpf">CPF *</label>
-            <input id="cpf" name="cpf" value={editingVaqueiro?.cpf || ''} required class="premium-input" placeholder="000.000.000-00" disabled={!!editingVaqueiro} />
+            <input id="cpf" name="cpf" minlength={11} maxlength={14} value={editingVaqueiro?.cpf || ''} required class="premium-input" placeholder="000.000.000-00"  />
+            <!-- disabled={!!editingVaqueiro} -->
             {#if editingVaqueiro}
               <input type="hidden" name="cpf" value={editingVaqueiro.cpf} />
             {/if}
@@ -126,6 +127,15 @@
           <div class="input-group">
             <label for="apelido">Apelido</label>
             <input id="apelido" name="apelido" value={editingVaqueiro?.apelido || ''} class="premium-input" placeholder="Como é conhecido" />
+          </div>
+          <div class="input-group">
+            <label for="genero">Gênero</label>
+            <select id="genero" required name="genero" value={editingVaqueiro?.genero || ''} class="premium-input">
+              <option value="">Selecione...</option>
+              <option value="Masculino">Masculino</option>
+              <option value="Feminino">Feminino</option>
+              <option value="Outro">Outro</option>
+            </select>
           </div>
           <div class="input-group">
             <label for="dataNascimento">Data Nascimento *</label>
@@ -180,9 +190,9 @@
               <label for="responsavelId">Responsável (Obrigatório para menor) *</label>
               <select id="responsavelId" name="responsavelId" bind:value={responsavelId} required={isMenorForm()} class="premium-input">
                 <option value="">Selecione o Responsável</option>
-                {#each (data.vaqueiros || []) as v}
+                {#each (data.vaqueiros.sort((a, b) => a.nomeCompleto.localeCompare(b.nomeCompleto)) || []) as v}
                   {#if v.id !== editingVaqueiro?.id}
-                    <option value={v.id}>{v.nomeCompleto} ({v.cpf})</option>
+                    <option class="uppercase" value={v.id}>{v.nomeCompleto} ({v.cpf})</option>
                   {/if}
                 {/each}
               </select>
@@ -277,8 +287,8 @@
         </tr>
       </thead>
       <tbody>
-        {#each filteredVaqueiros.sort((a, b) => a.nomeCompleto.localeCompare(b.nomeCompleto)) as v}
-          <tr>
+        {#each filteredVaqueiros.sort((a, b) => a.nomeCompleto.localeCompare(b.nomeCompleto)) as v, index}
+          <tr class="{index % 2 === 0 ? 'bg-yellow-900' : ''}">
             <td>{v.cpf}</td>
             <td>
               <div class="name-cell">
@@ -321,8 +331,8 @@
   .search-bar input { width: 100%; }
 
   .premium-table { width: 100%; border-collapse: collapse; text-align: left; }
-  .premium-table th { padding: 1rem; border-bottom: 1px solid var(--border-glass); color: var(--text-muted); font-size: 0.85rem; font-weight: 600; }
-  .premium-table td { padding: 1rem; border-bottom: 1px solid var(--border-glass); font-size: 0.95rem; }
+  .premium-table th { padding: 1rem; border-bottom: 1px solid var(--border-glass); border-left: 1px solid var(--border-glass); color: var(--text-muted); font-size: 0.85rem; font-weight: 600; }
+  .premium-table td { padding: 1rem; border-bottom: 1px solid var(--border-glass); border-left: 1px solid var(--border-glass); font-size: 0.95rem; }
   
   .name-cell { display: flex; flex-direction: column; }
   .nick { color: var(--primary); font-size: 0.8rem; font-weight: 600; }

@@ -9,7 +9,7 @@ export const task = sqliteTable('task', {
 	priority: integer('priority').notNull().default(1)
 });
 
-export const vaqueiros = sqliteTable('vaqueiros', {
+export const vaqueiros :any = sqliteTable('vaqueiros', {
 	id: text('id')
 		.primaryKey()
 		.$defaultFn(() => crypto.randomUUID()),
@@ -19,6 +19,7 @@ export const vaqueiros = sqliteTable('vaqueiros', {
 	nomeMae: text('nome_mae'),
 	nomePai: text('nome_pai'),
 	identidade: text('identidade'),
+	genero: text('genero'),
 	dataNascimento: text('data_nascimento').notNull(),
 	telefone: text('telefone'),
 	logradouro: text('logradouro'),
@@ -41,6 +42,7 @@ export const animais = sqliteTable('animais', {
 	nome: text('nome').notNull(),
 	cor: text('cor'),
 	raca: text('raca'),
+	sexo: text('sexo'),
 	dataNascimento: text('data_nascimento'),
 	peso: real('peso'),
 	categoria: text('categoria'), // puxador ou esteirador
