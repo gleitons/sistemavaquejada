@@ -807,7 +807,7 @@ async function imprimirSenhas() {
         doc.addImage(logoEsquerdo, 'JPG', 10, 5, 20, 20); 
       }
       if (logoDireito) {
-        doc.addImage(logoDireito, 'JPG', pageWidth - 30, 5, 20, 20);
+        doc.addImage(logoDireito, 'JPG', pageWidth - 40, 5, 35, 20);
       }
       
       doc.setFont("helvetica", "bold");

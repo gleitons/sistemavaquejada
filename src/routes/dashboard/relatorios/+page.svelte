@@ -19,22 +19,23 @@
     
     const body = data.vaqueiros.map((v: any, index: number) => {
       const senhasDoVaqueiro = data.senhas?.filter((s: any) => s.vaqueiroPuxadorId === v.id || s.vaqueiroEsteiraId === v.id).map((s: any) => s.numero).join(", ") || "-";
+      const cpfVaqueiro = v.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
       const cavalos = v.animaisAtribuidos?.map((a: any) => a.animal?.nome || "-").join(", ") || "-";
       const cores = v.animaisAtribuidos?.map((a: any) => a.animal?.cor || "-").join(", ") || "-";
       const racas = v.animaisAtribuidos?.map((a: any) => a.animal?.raca || "-").join(", ") || "-";
       
       return [
         index + 1,
-        senhasDoVaqueiro,
-        v.nomeCompleto,
-        v.apelido || "-",
+        cpfVaqueiro,
+        v.nomeCompleto.toUpperCase(),
+        v.apelido.toUpperCase() || "-",
         `${calcularIdade(v.dataNascimento)} anos`,
-        cavalos,
-        cores,
-        racas
+        cavalos.toUpperCase(),
+        cores.toUpperCase(),
+        racas.toUpperCase()
       ];
     });
-
+    body.sort((a: any, b: any) => a[2].localeCompare(b[2]));
     autoTable(doc, {
         head: [['Nº', 'Senha(s)', 'Nome', 'Apelido', 'Idade', 'Cavalo(s)', 'Cor', 'Raça']],
         body: body,
