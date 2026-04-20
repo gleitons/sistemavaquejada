@@ -129,7 +129,7 @@
             {/if}
           </div>
           <div class="input-group">
-            <label for="apelido">Apelido</label>
+            <label for="apelido">Apelido - Como será chamado</label>
             <input id="apelido" name="apelido" value={editingVaqueiro?.apelido || ''} class="premium-input" placeholder="Como é conhecido" />
           </div>
           <div class="input-group">

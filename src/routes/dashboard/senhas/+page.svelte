@@ -371,7 +371,7 @@ async function senhaJuizes(senha: any) {
     }
 
     // VAQUEIRO
-    addRow(`${puxador?.genero === "Masculino" ? "Vaqueiro" : "Vaqueira"} (Puxador)`, `${puxador?.nomeCompleto || "---"} (${puxador?.apelido || "n/a"})`);
+    addRow(`${puxador?.genero === "Masculino" ? "Vaqueiro" : "Vaqueira"} (Puxador)`, `${puxador?.apelido || puxador?.nomeCompleto.split(' ')[0]} - ${puxador?.nomeCompleto || "---"} `);
     
     // FILIAÇÃO VAQUEIRO
     const filiacaoV = `Pai: ${puxador?.nomePai || "---"} | Mãe: ${puxador?.nomeMae || "---"}`;
