@@ -75,7 +75,7 @@
             <input id="raca" name="raca" value={editingAnimal?.raca || ''} class="premium-input" />
           </div>
           <div class="input-group">
-            <label for="sexo">Sexo</label>
+            <label for="sexo">Sexo*</label>
             <select id="sexo" required name="sexo" value={editingAnimal?.sexo || ''} class="premium-input">
               <option value="">Selecione...</option>
               <option value="Macho">Macho</option>

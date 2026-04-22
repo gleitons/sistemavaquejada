@@ -175,11 +175,7 @@ async function printVoucher(senha: any) {
   doc.setFontSize(24);
   doc.text(`${senha.numero}`, 175, 52, { align: "center" }); // [cite: 10]
 
-  // --- DADOS DO COMPETIDOR ---
-  doc.setFillColor(240, 240, 240);
-  doc.rect(10, 60, 190, 7, 'F');
-  doc.setFontSize(10);
-  doc.text("DADOS DO COMPETIDOR (PUXADOR)", 12, 65); // [cite: 11]
+
 
   // Linha 1: Nome e Apelido
   doc.rect(10, 67, 130, 12); 
@@ -345,6 +341,32 @@ async function senhaJuizes(senha: any) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(24);
     doc.text(`${senha.numero}`, 169, yOff + 38, { align: "center" });
+
+      //-- ANOTACOES --
+  // 1. Desenha o Retângulo
+// x=10, y=55, largura=190, altura=15
+doc.rect(140, 105, 60, 30); 
+
+// 2. Configura a fonte
+doc.setFont("helvetica", "normal");
+doc.setFontSize(12);
+
+// 3. Alinhamento Perfeito
+// X = 105 (Centro do retângulo: 10 + 190/2)
+// Y = 64  (Aprox. o meio vertical do retângulo de altura 15)
+doc.text("ANOTACOES", 166, 103, { align: "center"}); 
+
+// Para a linha (___________________)
+// doc.setFontSize(24);
+// Se quiser centralizar a linha também:
+// doc.text("___________________", 170, 105, { align: "center" });
+
+
+  // --- DADOS DO COMPETIDOR ---
+  doc.setFillColor(240, 240, 240);
+  doc.rect(10, 60, 190, 7, 'F');
+  doc.setFontSize(10);
+  doc.text("DADOS DO COMPETIDOR (PUXADOR)", 12, 65); // [cite: 11]
 
     // --- TABELA VAQUEIRO / ANIMAL / ESTEIREIRO ---
     const tX = 10;       // table X start
@@ -1071,7 +1093,7 @@ let novasSenhas = $state(false)
 
         <button 
           onclick={() => openLinkModal(senha)}
-          class="w-full text-left mb-6"
+          class="w-full text-left mb-6 cursor-pointer "
         >
           <div class="flex items-center gap-4">
             <div class="flex flex-col items-center justify-center min-w-[65px] h-[65px] rounded-2xl 
@@ -1143,7 +1165,7 @@ let novasSenhas = $state(false)
 
               <button 
                 title="Senha para Juízes"
-                class="flex items-center justify-center py-2.5 bg-white/5 hover:bg-amber-500 rounded-xl transition-all duration-300 group/btn shadow-inner border border-white/5"
+                class="flex items-center justify-center py-2.5 bg-white/5 hover:bg-amber-500 rounded-xl transition-all duration-300 group/btn shadow-inner border border-Fwhite/5"
                 onclick={(e) => { e.stopPropagation(); senhaJuizes(senha); }}>
                 <span class="text-lg group-hover/btn:scale-125 transition-transform">⚖️</span>
               </button>

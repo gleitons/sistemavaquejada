@@ -28,10 +28,39 @@
   let filteredVaqueiros = $derived(
     (data.vaqueiros || []).filter(v => 
         v.nomeCompleto.toLowerCase().includes(search.toLowerCase()) || 
-        v.cpf.includes(search) ||
+        v.cpf.includes(search) || formatCpf(v.cpf).includes(search) ||
         (v.apelido && v.apelido.toLowerCase().includes(search.toLowerCase()))
     )
   );
+
+  function formatCpf(v: string) {
+    if (!v) return '';
+    v = v.replace(/\D/g, '');
+    if (v.length <= 3) return v;
+    if (v.length <= 6) return `${v.slice(0,3)}.${v.slice(3)}`;
+    if (v.length <= 9) return `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6)}`;
+    return `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6,9)}-${v.slice(9,11)}`;
+  }
+
+  function formatPhone(v: string) {
+    if (!v) return '';
+    v = v.replace(/\D/g, '');
+    if (v.length === 0) return '';
+    if (v.length <= 2) return `(${v}`;
+    if (v.length <= 6) return `(${v.slice(0,2)}) ${v.slice(2)}`;
+    if (v.length <= 10) return `(${v.slice(0,2)}) ${v.slice(2,6)}-${v.slice(6)}`;
+    return `(${v.slice(0,2)}) ${v.slice(2,3)} ${v.slice(3,7)}-${v.slice(7,11)}`;
+  }
+
+  function handleCpfInput(e: Event) {
+    const target = e.target as HTMLInputElement;
+    target.value = formatCpf(target.value);
+  }
+
+  function handleTelefoneInput(e: Event) {
+    const target = e.target as HTMLInputElement;
+    target.value = formatPhone(target.value);
+  }
 
   // Check if current vaqueiro being edited/created is minor
   let isMenorForm = $derived(() => {
@@ -100,8 +129,8 @@
 <div class="cowboys-page">
   <div class="page-header">
     <div>
-        <h1>Vaqueiros</h1>
-        <p>Gerenciamento de competidores</p>
+        <h1>Vaqueiros ou responsáveis</h1>
+        <p>Gerenciamento de competidores ou responsáveis</p>
     </div>
     <button id="editar" class="premium-button" onclick={showForm ? closeForm : () => showForm = true}>
         {showForm ? 'Fechar Formulário' : '+ Novo Vaqueiro'}
@@ -122,7 +151,7 @@
           </div>
           <div class="input-group">
             <label for="cpf">CPF *</label>
-            <input id="cpf" name="cpf" minlength={11} maxlength={14} value={editingVaqueiro?.cpf || ''} required class="premium-input" placeholder="000.000.000-00"  />
+            <input id="cpf" name="cpf" minlength={14} maxlength={14} value={formatCpf(editingVaqueiro?.cpf || '')} oninput={handleCpfInput} required class="premium-input" placeholder="000.000.000-00"  />
             <!-- disabled={!!editingVaqueiro} -->
             {#if editingVaqueiro}
               <input type="hidden" name="cpf" value={editingVaqueiro.cpf} />
@@ -151,7 +180,7 @@
           </div>
           <div class="input-group">
             <label for="telefone">Telefone</label>
-            <input id="telefone" name="telefone" value={editingVaqueiro?.telefone || ''} class="premium-input" placeholder="(00) 00000-0000" />
+            <input id="telefone" name="telefone" value={formatPhone(editingVaqueiro?.telefone || '')} oninput={handleTelefoneInput} maxlength={16} class="premium-input" placeholder="(00) 00000-0000" />
           </div>
           <div class="input-group">
             <label for="nomeMae">Nome da Mãe</label>
@@ -196,7 +225,7 @@
                 <option value="">Selecione o Responsável</option>
                 {#each (data.vaqueiros.sort((a, b) => a.nomeCompleto.localeCompare(b.nomeCompleto)) || []) as v}
                   {#if v.id !== editingVaqueiro?.id}
-                    <option class="uppercase" value={v.id}>{v.nomeCompleto} ({v.cpf})</option>
+                    <option class="uppercase" value={v.id}>{v.nomeCompleto} ({formatCpf(v.cpf)})</option>
                   {/if}
                 {/each}
               </select>
@@ -293,7 +322,7 @@
       <tbody>
         {#each filteredVaqueiros.sort((a, b) => a.nomeCompleto.localeCompare(b.nomeCompleto)) as v, index}
           <tr class="{index % 2 === 0 ? 'bg-yellow-900' : ''}">
-            <td>{v.cpf}</td>
+            <td>{formatCpf(v.cpf)}</td>
             <td>
               <div class="name-cell">
                 <span class="uppercase main-name">{v.nomeCompleto}</span>
