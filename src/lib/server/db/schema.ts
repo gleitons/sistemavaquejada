@@ -94,6 +94,9 @@ export const senhas = sqliteTable('senhas', {
 	vaqueiroEsteiraId: text('vaqueiro_esteira_id').references(() => vaqueiros.id),
 	animalEsteiraId: text('animal_esteira_id').references(() => animais.id),
 	
+	// Data de cadastro do vínculo (preenchida automaticamente ao vincular)
+	dataCadastro: integer('data_cadastro', { mode: 'timestamp' }),
+
 	createdAt: integer('created_at', { mode: 'timestamp' })
 		.$defaultFn(() => new Date())
 });

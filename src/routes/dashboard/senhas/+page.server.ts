@@ -1,7 +1,7 @@
 import { db } from '$lib/server/db';
 import { senhas, vaqueiros, animais, lotes } from '$lib/server/db/schema';
 import { fail } from '@sveltejs/kit';
-import { eq, and, asc, desc } from 'drizzle-orm';
+import { eq, asc, desc } from 'drizzle-orm';
 
 export const load = async () => {
     const batches = await db.select().from(lotes).orderBy(desc(lotes.createdAt));
@@ -11,6 +11,7 @@ export const load = async () => {
         numero: senhas.numero,
         status: senhas.status,
         dataCompeticao: senhas.dataCompeticao,
+        dataCadastro: senhas.dataCadastro,
         loteId: senhas.loteId,
         puxadorId: senhas.vaqueiroPuxadorId,
         esteiraId: senhas.vaqueiroEsteiraId,
@@ -87,6 +88,7 @@ export const actions = {
                     vaqueiroEsteiraId: esteiraId || null,
                     animalEsteiraId: animalEsteiraId || null,
                     dataCompeticao: data || null,
+                    dataCadastro: new Date(),
                     status: 'vinculado'
                 })
                 .where(eq(senhas.id, id));
@@ -121,6 +123,7 @@ export const actions = {
                     vaqueiroEsteiraId: null,
                     animalEsteiraId: null,
                     dataCompeticao: null,
+                    dataCadastro: null,
                     status: 'disponivel'
                 })
                 .where(eq(senhas.id, id));

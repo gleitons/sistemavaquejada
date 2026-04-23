@@ -363,10 +363,10 @@ doc.text("ANOTACOES", 166, 103, { align: "center"});
 
 
   // --- DADOS DO COMPETIDOR ---
-  doc.setFillColor(240, 240, 240);
-  doc.rect(10, 60, 190, 7, 'F');
-  doc.setFontSize(10);
-  doc.text("DADOS DO COMPETIDOR (PUXADOR)", 12, 65); // [cite: 11]
+  // doc.setFillColor(240, 240, 240);
+  // doc.rect(10, 60, 190, 7, 'F');
+  // doc.setFontSize(10);
+  // doc.text("DADOS DO COMPETIDOR (PUXADOR)", 12, 65); // [cite: 11]
 
     // --- TABELA VAQUEIRO / ANIMAL / ESTEIREIRO ---
     const tX = 10;       // table X start
@@ -883,6 +883,98 @@ async function imprimirSenhas() {
   doc.save(`relatorio_senhas_${selectedLote.inicio}_ate_${selectedLote.fim}.pdf`);
 }
 
+async function gerarRelatorioSenhas() {
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4"
+  });
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const logoEsquerdo = await getBase64FromUrl("/brasao-lagoa.jpg").catch(()=>null); 
+  const logoDireito = await getBase64FromUrl("/logo-administracao.jpg").catch(()=>null);
+
+  const senhasVinculadas = data.senhas
+    .filter(s => s.status === 'vinculado' && s.dataCadastro)
+    .sort((a, b) => new Date(b.dataCadastro).getTime() - new Date(a.dataCadastro).getTime());
+
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  
+  const inicioSemana = new Date(hoje);
+  inicioSemana.setDate(hoje.getDate() - hoje.getDay());
+
+  const totalHoje = senhasVinculadas.filter(s => {
+    const d = new Date(s.dataCadastro);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime() === hoje.getTime();
+  }).length;
+
+  const totalSemana = senhasVinculadas.filter(s => new Date(s.dataCadastro) >= inicioSemana).length;
+  const totalGeral = senhasVinculadas.length;
+
+  // Header Function
+  const drawHeader = () => {
+    if (logoEsquerdo) doc.addImage(logoEsquerdo, 'JPG', 10, 5, 20, 20); 
+    if (logoDireito) doc.addImage(logoDireito, 'JPG', pageWidth - 40, 5, 35, 20);
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.text("PREFEITURA MUNICIPAL DE LAGOA DOS PATOS", pageWidth / 2, 12, { align: "center" });
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text("RELATÓRIO DE CADASTROS POR DATA", pageWidth / 2, 18, { align: "center" });
+    doc.setLineWidth(0.5);
+    doc.line(60, 22, pageWidth - 60, 22);
+  };
+
+  drawHeader();
+
+  // Summary Table
+  // @ts-ignore
+  autoTable(doc, {
+    startY: 30,
+    head: [['Período', 'Total de Vínculos']],
+    body: [
+      ['Hoje', totalHoje],
+      ['Esta Semana', totalSemana],
+      ['Total Geral', totalGeral]
+    ],
+    theme: 'striped',
+    headStyles: { fillColor: [79, 70, 229] },
+    styles: { halign: 'center' }
+  });
+
+  // Details Table
+  const tableData = senhasVinculadas.map(s => {
+    const puxador = data.vaqueiros.find(v => v.id === s.puxadorId);
+    const animal = data.animais.find(a => a.id === s.animalPuxadorId);
+    return [
+      s.numero,
+      puxador?.nomeCompleto?.toUpperCase() || '---',
+      animal?.nome?.toUpperCase() || '---',
+      new Date(s.dataCadastro).toLocaleString('pt-BR')
+    ];
+  });
+
+  // @ts-ignore
+  autoTable(doc, {
+    startY: (doc as any).lastAutoTable.finalY + 10,
+    head: [['Nº', 'COMPETIDOR', 'ANIMAL', 'DATA/HORA VÍNCULO']],
+    body: tableData,
+    theme: 'grid',
+    headStyles: { fillColor: [31, 41, 55] },
+    columnStyles: {
+      0: { cellWidth: 15, halign: 'center' },
+      1: { cellWidth: 'auto' },
+      2: { cellWidth: 40 },
+      3: { cellWidth: 45, halign: 'center' }
+    }
+  });
+
+  doc.save(`relatorio_cadastros_${new Date().toISOString().split('T')[0]}.pdf`);
+}
+
 // Derived: check if selected puxador is minor without responsible
 let puxadorMenorSemResponsavel = $derived(() => {
   if (!puxadorId) return false;
@@ -1058,6 +1150,9 @@ let novasSenhas = $state(false)
         <div class="header-actions flex gap-5">
           <button class="premium-button secondary" onclick={imprimirMapaSenhas}>Mapa</button>
           <button class="premium-button terciary" onclick={imprimirSenhas}>Relatório</button>
+          <button class="premium-button secondary" onclick={gerarRelatorioSenhas} title="Relatório de Cadastros por Data">
+            📊 Cadastros
+          </button>
         </div>
     </div>
 
