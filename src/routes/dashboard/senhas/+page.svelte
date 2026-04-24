@@ -19,12 +19,29 @@ import Loading from "../../../components/Loading.svelte";
   let esteiraId = $state("");
   let animalEsteiraId = $state("");
   let competitionDate = $state("");
+  let searchTerm = $state("");
 
-  let filteredSenhas = $derived(
-    selectedLote 
-      ? data.senhas.filter(s => s.loteId === selectedLote.id)
-      : []
-  );
+  let filteredSenhas = $derived.by(() => {
+    if (!selectedLote) return [];
+    let senhas = data.senhas.filter((s: any) => s.loteId === selectedLote.id);
+    
+    if (searchTerm.trim() !== "") {
+      const term = searchTerm.toLowerCase().trim();
+      senhas = senhas.filter((s: any) => {
+        const puxador = data.vaqueiros.find((v: any) => v.id === s.puxadorId);
+        const animalP = data.animais.find((a: any) => a.id === s.animalPuxadorId);
+        
+        const matchNumero = String(s.numero).includes(term);
+        const matchCpf = puxador?.cpf?.toLowerCase().includes(term) || false;
+        const matchNome = puxador?.nomeCompleto?.toLowerCase().includes(term) || false;
+        const matchApelido = puxador?.apelido?.toLowerCase().includes(term) || false;
+        const matchAnimal = animalP?.nome?.toLowerCase().includes(term) || false;
+
+        return matchNumero || matchCpf || matchNome || matchApelido || matchAnimal;
+      });
+    }
+    return senhas;
+  });
   async function getBase64FromUrl(url: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -133,7 +150,7 @@ async function printVoucher(senha: any) {
   
   // doc.setFontSize(10);
   // doc.setFont("helvetica", "normal");
-  // doc.text("PRAÇA 31 DE MARÇO, 111 - CENTRO | TEL. (38) 3745-1239", 105, 20, { align: "center" }); // [cite: 2, 3]
+  // doc.text("PRAÇA 31 DE MARÇO, 111 - CENTRO | TEL. (38) 3426-0398", 105, 20, { align: "center" }); // [cite: 2, 3]
 
   // --- IMAGENS (LOGOS) ---
   // Substitua as strings abaixo pelo seu código Base64 real (ex: 'data:image/png;base64,iVBORw...')
@@ -185,6 +202,7 @@ async function printVoucher(senha: any) {
   doc.text("APELIDO", 142, 71); // [cite: 12]
   doc.setFontSize(9);
   doc.text(puxador?.nomeCompleto?.toUpperCase() || "---", 12, 76);
+  
   doc.text(puxador?.apelido?.toUpperCase() || "---", 142, 76);
 
   // Linha 2: Nascimento, Idade e Cavalos Vinculados
@@ -504,7 +522,7 @@ async function autorizacaoMenor(senha: any) {
   doc.text('PREFEITURA MUNICIPAL DE LAGOA DOS PATOS', 105, 15, { align: 'center' });
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text('PRAÇA 31 DE MARÇO, 111 - CENTRO | TEL. (38) 3745-1239', 105, 20, { align: 'center' });
+  doc.text('PRAÇA 31 DE MARÇO, 111 - CENTRO | TEL. (38) 3426-0398', 105, 20, { align: 'center' });
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
@@ -800,7 +818,7 @@ async function imprimirSenhas() {
       animalP?.cor?.toUpperCase() || ""
     ];
   });
-
+    // console.log(tableData[4][4]),
   // @ts-ignore
   autoTable(doc, {
     startY: 55,
@@ -824,16 +842,37 @@ async function imprimirSenhas() {
       lineColor: [0, 0, 0],
       textColor: [0, 0, 0]
     },
+  
     columnStyles: {
-      0: { cellWidth: 10, halign: 'center' },
+      0: { cellWidth: 8, halign: 'center', fontSize:6 },
       1: { cellWidth: 'auto' }, // Nome Completo Puxador
-      2: { cellWidth: 25 },
+      2: { cellWidth: 35,  },
       3: { cellWidth: 10, halign: 'center' },
-      4: { cellWidth: 25 },
-      5: { cellWidth: 20 },
-      6: { cellWidth: 15 }
+      4: { cellWidth: 25, fontSize: 6},
+      5: { cellWidth: 20, fontSize:6 },
+      6: { cellWidth: 15, fontSize:6 }
     },
+    didParseCell: (data) => {
+    // Verifica se estamos na coluna do "CAVALO" (índice 4)
+    if (data.section === 'body' && data.column.index === 4) {
+      const valor = String(data.cell.raw || "");
+      if (valor.length > 12) {
+        data.cell.styles.fontSize = 6; // Diminui se o nome for longo
+      } else {
+        data.cell.styles.fontSize = 8; // Tamanho normal
+      }
+    }
+    if (data.section === 'body' && data.column.index === 2) {
+      const valor = String(data.cell.raw || "");
+      if (valor.length > 16) {
+        data.cell.styles.fontSize = 6; // Diminui se o nome for longo
+      } else {
+        data.cell.styles.fontSize = 8; // Tamanho normal
+      }
+    }
+  },
     margin: { top: 55, bottom: 20 },
+    
     didDrawPage: (dataArg: any) => {
       // Header
       if (logoEsquerdo) {
@@ -849,7 +888,7 @@ async function imprimirSenhas() {
       
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
-      doc.text("PRAÇA 31 DE MARÇO, 111 – CENTRO | TEL. (38) 3745-1239", pageWidth / 2, 17, { align: "center" });
+      doc.text("PRAÇA 31 DE MARÇO, 111 – CENTRO | TEL. (38) 3426-0398", pageWidth / 2, 17, { align: "center" });
       
       doc.setLineWidth(0.5);
       doc.line(60, 22, pageWidth - 60, 22);
@@ -858,8 +897,8 @@ async function imprimirSenhas() {
       doc.setFontSize(12);
       doc.text("VAQUEJADA NACIONAL DE LAGOA DOS PATOS - 2026", pageWidth / 2, 28, { align: "center" });
       
-      doc.setFontSize(9);
       doc.setFont("helvetica", "italic");
+      doc.setFontSize(8);
       doc.text("07 a 10 de maio – Parque de Vaquejada Pedro Pereira Durães", pageWidth / 2, 33, { align: "center" });
       
       doc.setFontSize(13);
@@ -1108,7 +1147,8 @@ let novasSenhas = $state(false)
           <div class="relative group">
             <button class="lote-link premium-card w-full" onclick={() => selectedLote = lote}>
               <div class="lote-info">
-                <span class="lote-title">Sequência #{lote.inicio} ao #{lote.fim}</span>
+              <!-- {console.log(data.senhas)} -->
+                <span class="lote-title">Sequência #{lote.inicio} ao #{lote.fim} - <span class="text-white font-bold bg-orange-800 px-2 rounded">{data.senhas.filter(s => s.status !== "disponivel").length} Senhas preenchidas</span></span>
                 <span class="lote-date">Competição: {lote.dataCompeticao}</span>
               </div>
               <span class="lote-arrow mr-10">Ver Senhas →</span>
@@ -1154,6 +1194,18 @@ let novasSenhas = $state(false)
             📊 Cadastros
           </button>
         </div>
+    </div>
+
+    <div class="px-6 mb-2">
+    *Insira um ponto final "." e clique em relatório para imprimir somente as senhas preenchidas
+      <input 
+        type="text" 
+        bind:value={searchTerm} 
+        placeholder="Pesquisar por número, CPF, nome, apelido ou animal..." 
+        class="w-full bg-slate-900/50 border border-slate-700 text-white text-sm rounded-xl px-4 py-3 
+               focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all
+               placeholder:text-slate-500"
+      />
     </div>
 
     <div class="flex flex-wrap gap-6 p-6 bg-slate-950 min-h-screen justify-between">
