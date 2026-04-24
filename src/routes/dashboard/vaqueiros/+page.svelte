@@ -321,12 +321,13 @@
       </thead>
       <tbody>
         {#each filteredVaqueiros.sort((a, b) => a.nomeCompleto.localeCompare(b.nomeCompleto)) as v, index}
+        {@const idade = calcularIdade(v.dataNascimento)}  
           <tr class="{index % 2 === 0 ? 'bg-yellow-900' : ''}">
             <td>{formatCpf(v.cpf)}</td>
             <td>
               <div class="name-cell">
-                <span class="uppercase main-name">{v.nomeCompleto}</span>
-                {#if v.apelido}<span class="nick">"{v.apelido}"</span>{/if}
+                <span class="uppercase main-name">{v.nomeCompleto} - <span class="text-white bg-black px-2 rounded-lg">{idade} anos</span></span>
+                {#if v.apelido}<span class="uppercase nick">"{v.apelido || v.nomeCompleto}" </span>{/if}
               </div>
             </td>
             <td class="uppercase "><p class="truncate  w-48 hover:overflow-visible cursor-pointer">{v.cidade || '-'} / {v.comunidade || '-'}</p></td>
