@@ -418,7 +418,7 @@
                 <span class="uppercase main-name">{idade} anos</span>
               </div>
             </td>
-            <td>{formatCpf(v.cpf)}</td>
+            <td>{formatCpf(v.cpf)} </td>
             <td class="uppercase "><p class="truncate  w-48 hover:overflow-visible cursor-pointer">{v.comunidade  || ''} { v.comunidade ? " / " : ""} {v.cidade || '-'}</p></td>
             <td>
               <div class="row-actions">
