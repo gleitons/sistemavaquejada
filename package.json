@@ -52,6 +52,7 @@
 		"workbox-window": "^7.4.0"
 	},
 	"dependencies": {
+		"dexie": "^4.4.2",
 		"jspdf": "^4.2.1",
 		"jspdf-autotable": "^5.0.7"
 	}
