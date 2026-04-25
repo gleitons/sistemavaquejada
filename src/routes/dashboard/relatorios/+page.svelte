@@ -1,7 +1,29 @@
 <script lang="ts">
   import { jsPDF } from "jspdf";
   import autoTable from "jspdf-autotable";
+  import { db } from '$lib/db/local';
+  import { liveQuery } from 'dexie';
+  import { onMount } from 'svelte';
   let { data } = $props();
+
+  let localVaqueiros = $state<any[]>([]);
+  let localAnimais = $state<any[]>([]);
+  let localSenhas = $state<any[]>([]);
+
+  onMount(() => {
+    const subV = liveQuery(() => db.vaqueiros.toArray()).subscribe(v => localVaqueiros = v);
+    const subA = liveQuery(() => db.animais.toArray()).subscribe(a => localAnimais = a);
+    const subS = liveQuery(() => db.senhas.toArray()).subscribe(s => localSenhas = s);
+    return () => {
+      subV.unsubscribe();
+      subA.unsubscribe();
+      subS.unsubscribe();
+    };
+  });
+
+  let displayVaqueiros = $derived(localVaqueiros.length > 0 ? localVaqueiros : (data.vaqueiros || []));
+  let displayAnimais = $derived(localAnimais.length > 0 ? localAnimais : (data.animais || []));
+  let displaySenhas = $derived(localSenhas.length > 0 ? localSenhas : (data.senhas || []));
 
   function calcularIdade(dataNasc: string): number {
     if (!dataNasc) return 0;
@@ -18,14 +40,14 @@
   doc.text("Relação de Vaqueiros Inscritos", 14, 15);
 
   // 1. Primeiro, ordenamos a lista original por nome completo
-  const vaqueirosOrdenados = [...data.vaqueiros].sort((a, b) =>
+  const vaqueirosOrdenados = [...displayVaqueiros].sort((a, b) =>
     a.nomeCompleto.localeCompare(b.nomeCompleto)
   );
 
   // 2. Agora mapeamos os dados já na ordem correta
   const body = vaqueirosOrdenados.map((v: any, index: number) => {
-    const senhasDoVaqueiro = data.senhas
-      ?.filter((s: any) => s.vaqueiroPuxadorId === v.id || s.vaqueiroEsteiraId === v.id)
+    const senhasDoVaqueiro = displaySenhas
+      ?.filter((s: any) => s.vaqueiroPuxadorId === v.id || s.vaqueiroEsteiraId === v.id || s.puxadorId === v.id)
       .map((s: any) => s.numero)
       .join(", ") || "-";
 
@@ -61,7 +83,7 @@
     doc.text("Relação Detalhada de Animais", 14, 15);
 
     // 1. Primeiro, criamos uma cópia organizada por nome
-    const animaisOrdenados = [...data.animais].sort((a, b) => 
+    const animaisOrdenados = [...displayAnimais].sort((a, b) => 
         a.nome.localeCompare(b.nome)
     );
 
@@ -111,6 +133,18 @@
       <p>Exporta todos os animais vinculados aos seus respectivos vaqueiros.</p>
       <button class="premium-button" onclick={exportAnimais}>Gerar PDF Animais</button>
     </div>
+
+     <!-- <div class="card premium-card">
+      <h3>Lista de Cadastros Pessoais</h3>
+      <p>Exporta todos os dados pessoais dos vaqueiros e responsáveis.</p>
+      <button class="premium-button" onclick={exportAnimais}>Gerar PDF Animais</button>
+    </div>
+
+     <div class="card premium-card">
+      <h3>Lista cadastro Homem ou Mulher</h3>
+      <p>Exporta todos os vaqueiros e responsáveis.</p>
+      <button class="premium-button" onclick={exportAnimais}>Gerar PDF Animais</button>
+    </div> -->
   </div>
 </div>
 

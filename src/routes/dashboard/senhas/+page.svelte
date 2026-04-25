@@ -2,12 +2,47 @@
   import { invalidateAll } from "$app/navigation";
   import { enhance } from "$app/forms";
   import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
-import Loading from "../../../components/Loading.svelte";
+  import autoTable from "jspdf-autotable";
+  import Loading from "../../../components/Loading.svelte";
+  import { db } from '$lib/db/local';
+  import { smartRequest } from '$lib/utils/offline';
+  import { liveQuery } from 'dexie';
+  import { onMount } from 'svelte';
 
   let { data, form } = $props();
 
   // console.log(data);
+
+  let localSenhas = $state<any[]>([]);
+  let localLotes = $state<any[]>([]);
+  let localVaqueiros = $state<any[]>([]);
+  let localAnimais = $state<any[]>([]);
+
+  onMount(() => {
+    const subS = liveQuery(() => db.senhas.toArray()).subscribe(s => {
+      localSenhas = s;
+    });
+    const subL = liveQuery(() => db.lotes.toArray()).subscribe(l => {
+      localLotes = l;
+    });
+    const subV = liveQuery(() => db.vaqueiros.toArray()).subscribe(v => {
+      localVaqueiros = v;
+    });
+    const subA = liveQuery(() => db.animais.toArray()).subscribe(a => {
+      localAnimais = a;
+    });
+    return () => {
+      subS.unsubscribe();
+      subL.unsubscribe();
+      subV.unsubscribe();
+      subA.unsubscribe();
+    };
+  });
+
+  let displaySenhas = $derived(localSenhas.length > 0 ? localSenhas : (data.senhas || []));
+  let displayLotes = $derived(localLotes.length > 0 ? localLotes : (data.lotes || []));
+  let displayVaqueiros = $derived(localVaqueiros.length > 0 ? localVaqueiros : (data.vaqueiros || []));
+  let displayAnimais = $derived(localAnimais.length > 0 ? localAnimais : (data.animais || []));
 
   let showModal = $state(false);
   let selectedSenha = $state<any>(null);
@@ -23,13 +58,15 @@ import Loading from "../../../components/Loading.svelte";
 
   let filteredSenhas = $derived.by(() => {
     if (!selectedLote) return [];
-    let senhas = data.senhas.filter((s: any) => s.loteId === selectedLote.id);
+    let senhas = [...displaySenhas]
+      .filter((s: any) => s.loteId === selectedLote.id)
+      .sort((a, b) => a.numero - b.numero);
     
     if (searchTerm.trim() !== "") {
       const term = searchTerm.toLowerCase().trim();
       senhas = senhas.filter((s: any) => {
-        const puxador = data.vaqueiros.find((v: any) => v.id === s.puxadorId);
-        const animalP = data.animais.find((a: any) => a.id === s.animalPuxadorId);
+        const puxador = displayVaqueiros.find((v: any) => v.id === s.vaqueiroPuxadorId || v.id === s.vaqueiroPuxadorId);
+        const animalP = displayAnimais.find((a: any) => a.id === s.animalPuxadorId);
         
         const matchNumero = String(s.numero).includes(term);
         const matchCpf = puxador?.cpf?.toLowerCase().includes(term) || false;
@@ -63,9 +100,9 @@ import Loading from "../../../components/Loading.svelte";
   function openLinkModal(senha: any) {
     // console.log(senha);
     selectedSenha = senha;
-    puxadorId = senha.puxadorId || "";
+    puxadorId = senha.vaqueiroPuxadorId || "";
     animalPuxadorId = senha.animalPuxadorId || "";
-    esteiraId = senha.esteiraId || "";
+    esteiraId = senha.vaqueiroEsteiraId || senha.esteiraId || "";
     animalEsteiraId = senha.animalEsteiraId || "";
     competitionDate = senha.dataCompeticao || new Date().toISOString().split('T')[0];
     showModal = true;
@@ -89,10 +126,10 @@ import Loading from "../../../components/Loading.svelte";
       format: [80, 150] // Compact receipt format
     });
 
-    const puxador = data.vaqueiros.find(v => v.id === senha.puxadorId);
-    const animalP = data.animais.find(a => a.id === senha.animalPuxadorId);
-    const esteira = data.vaqueiros.find(v => v.id === senha.esteiraId);
-    const animalE = data.animais.find(a => a.id === senha.animalEsteiraId);
+    const puxador = displayVaqueiros.find(v => v.id === senha.vaqueiroPuxadorId);
+    const animalP = displayAnimais.find(a => a.id === senha.animalPuxadorId);
+    const esteira = displayVaqueiros.find(v => v.id === senha.esteiraId);
+    const animalE = displayAnimais.find(a => a.id === senha.animalEsteiraId);
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(18);
@@ -121,7 +158,7 @@ import Loading from "../../../components/Loading.svelte";
     doc.text(`Data: ${senha.dataCompeticao || "---"}`, 40, 90, { align: "center" });
 
     if (puxador?.responsavelId) {
-        const resp = data.vaqueiros.find(v => v.id === puxador.responsavelId);
+        const resp = displayVaqueiros.find(v => v.id === puxador.responsavelId);
         doc.setFontSize(8);
         doc.text(`Responsável: ${resp?.nomeCompleto || ""}`, 40, 100, { align: "center" });
     }
@@ -137,11 +174,11 @@ async function printVoucher(senha: any) {
     format: "a4"
   });
 
-  const puxador = data.vaqueiros.find(v => v.id === senha.puxadorId);
-  const animalP = data.animais.find(a => a.id === senha.animalPuxadorId);
+  const puxador = displayVaqueiros.find(v => v.id === senha.vaqueiroPuxadorId);
+  const animalP = displayAnimais.find(a => a.id === senha.animalPuxadorId);
   
   // Conta quantos cavalos estão vinculados a este puxador no sistema
-  const cavalosVinculados = data.senhas.filter(s => s.puxadorId === puxador?.id).length;
+  const cavalosVinculados = displaySenhas.filter(s => s.vaqueiroPuxadorId === puxador?.id).length;
 
   // --- CABEÇALHO ---
   // doc.setFont("helvetica", "bold");
@@ -304,9 +341,9 @@ async function senhaJuizes(senha: any) {
     format: "a4"
   });
 
-  const puxador = data.vaqueiros.find(v => v.id === senha.puxadorId);
-  const animalP = data.animais.find(a => a.id === senha.animalPuxadorId);
-  const esteira = data.vaqueiros.find(v => v.id === senha.esteiraId);
+  const puxador = displayVaqueiros.find(v => v.id === senha.vaqueiroPuxadorId);
+  const animalP = displayAnimais.find(a => a.id === senha.animalPuxadorId);
+  const esteira = displayVaqueiros.find(v => v.id === senha.esteiraId);
 
   const logoEsquerdo = await getBase64FromUrl("/brasao-lagoa.jpg").catch(()=>null); 
   const logoDireito = await getBase64FromUrl("/logo-administracao.jpg").catch(()=>null);
@@ -495,11 +532,11 @@ const verIdade = (dataNasc: string): number => {
   return idade;
 }
 async function autorizacaoMenor(senha: any) {
-  const puxador = data.vaqueiros.find(v => v.id === senha.puxadorId);
+  const puxador = displayVaqueiros.find(v => v.id === senha.vaqueiroPuxadorId);
   if (!puxador) { alert('Puxador não encontrado.'); return; }
   if (!puxador.responsavelId) { alert('Este vaqueiro não possui um responsável vinculado. Cadastre o responsável na página de Vaqueiros.'); return; }
 
-  const resp = data.vaqueiros.find(v => v.id === puxador.responsavelId);
+  const resp = displayVaqueiros.find(v => v.id === puxador.responsavelId);
   if (!resp) { alert('Responsável não encontrado no cadastro.'); return; }
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -732,8 +769,8 @@ async function imprimirMapaSenhas() {
         
         if (currentSenhaIndex < filteredSenhas.length) {
             const senha = filteredSenhas[currentSenhaIndex];
-            const puxador = data.vaqueiros.find((v: any) => v.id === senha.puxadorId);
-            const animalP = data.animais.find((a: any) => a.id === senha.animalPuxadorId);
+            const puxador = displayVaqueiros.find((v: any) => v.id === senha.vaqueiroPuxadorId);
+            const animalP = displayAnimais.find((a: any) => a.id === senha.animalPuxadorId);
             
             doc.rect(cellX, cellY, colWidth, rowHeight);
             
@@ -805,8 +842,8 @@ async function imprimirSenhas() {
   const logoDireito = await getBase64FromUrl("/logo-administracao.jpg").catch(()=>null);
   
   const tableData = filteredSenhas.map(senha => {
-    const puxador = data.vaqueiros.find((v: any) => v.id === senha.puxadorId);
-    const animalP = data.animais.find((a: any) => a.id === senha.animalPuxadorId);
+    const puxador = displayVaqueiros.find((v: any) => v.id === senha.vaqueiroPuxadorId);
+    const animalP = displayAnimais.find((a: any) => a.id === senha.animalPuxadorId);
     
     return [
       `${senha.numero}.`,
@@ -933,7 +970,7 @@ async function gerarRelatorioSenhas() {
   const logoEsquerdo = await getBase64FromUrl("/brasao-lagoa.jpg").catch(()=>null); 
   const logoDireito = await getBase64FromUrl("/logo-administracao.jpg").catch(()=>null);
 
-  const senhasVinculadas = data.senhas
+  const senhasVinculadas = displaySenhas
     .filter(s => s.status === 'vinculado' && s.dataCadastro)
     .sort((a, b) => new Date(b.dataCadastro).getTime() - new Date(a.dataCadastro).getTime());
 
@@ -986,8 +1023,8 @@ async function gerarRelatorioSenhas() {
 
   // Details Table
   const tableData = senhasVinculadas.map(s => {
-    const puxador = data.vaqueiros.find(v => v.id === s.puxadorId);
-    const animal = data.animais.find(a => a.id === s.animalPuxadorId);
+    const puxador = displayVaqueiros.find(v => v.id === s.vaqueiroPuxadorId);
+    const animal = displayAnimais.find(a => a.id === s.animalPuxadorId);
     return [
       s.numero,
       puxador?.nomeCompleto?.toUpperCase() || '---',
@@ -1017,7 +1054,7 @@ async function gerarRelatorioSenhas() {
 // Derived: check if selected puxador is minor without responsible
 let puxadorMenorSemResponsavel = $derived(() => {
   if (!puxadorId) return false;
-  const pux = data.vaqueiros.find(v => v.id === puxadorId);
+  const pux = displayVaqueiros.find(v => v.id === puxadorId);
   if (!pux || !pux.dataNascimento) return false;
   const [year, month, day] = pux.dataNascimento.split('-').map(Number);
   const nasc = new Date(year, month - 1, day);
@@ -1028,8 +1065,128 @@ let puxadorMenorSemResponsavel = $derived(() => {
   if (idade >= 18) return false;
   return !pux.responsavelId;
 });
-let verLoad = $state(false)
-let novasSenhas = $state(false)
+let verLoad = $state(false);
+let novasSenhas = $state(false);
+
+async function handleGerar(e: SubmitEvent) {
+    e.preventDefault();
+    const formData = new FormData(e.target as HTMLFormElement);
+    const inicio = parseInt(formData.get('inicio') as string);
+    const fim = parseInt(formData.get('fim') as string);
+    const dataCompeticao = formData.get('data') as string;
+
+    verLoad = true;
+    const loteId = crypto.randomUUID();
+    
+    try {
+        await smartRequest(
+            'POST',
+            '/api/senhas',
+            { inicio, fim, dataCompeticao, loteId },
+            async () => {
+                await db.lotes.add({ id: loteId, inicio, fim, dataCompeticao, createdAt: Date.now() });
+                const batch = [];
+                for (let i = inicio; i <= fim; i++) {
+                    batch.push({
+                        id: crypto.randomUUID(),
+                        numero: i,
+                        dataCompeticao,
+                        loteId,
+                        status: 'disponivel' as const
+                    });
+                }
+                await db.senhas.bulkAdd(batch);
+                novasSenhas = false;
+            }
+        );
+    } catch (err) {
+        console.error(err);
+    } finally {
+        verLoad = false;
+    }
+}
+
+async function handleVincular(e: SubmitEvent) {
+    e.preventDefault();
+    const formData = new FormData(e.target as HTMLFormElement);
+    const id = selectedSenha.id;
+    
+    verLoad = true;
+    const updateData = {
+        vaqueiroPuxadorId: puxadorId || null,
+        animalPuxadorId: animalPuxadorId || null,
+        vaqueiroEsteiraId: esteiraId || null,
+        animalEsteiraId: animalEsteiraId || null,
+        dataCompeticao: competitionDate || null,
+        status: 'vinculado' as const
+    };
+
+    try {
+        await smartRequest(
+            'PATCH',
+            `/api/senhas/${id}`,
+            updateData,
+            async () => {
+                await db.senhas.update(id, { ...updateData, dataCadastro: Date.now() });
+                showModal = false;
+            }
+        );
+    } catch (err) {
+        console.error(err);
+    } finally {
+        verLoad = false;
+    }
+}
+
+async function handleDesvincular(id: string) {
+    if (!confirm('Tem certeza que deseja limpar esta senha e torná-la disponível novamente?')) return;
+    
+    verLoad = true;
+    const updateData = {
+        vaqueiroPuxadorId: null,
+        animalPuxadorId: null,
+        vaqueiroEsteiraId: null,
+        animalEsteiraId: null,
+        dataCompeticao: null,
+        status: 'disponivel' as const
+    };
+
+    try {
+        await smartRequest(
+            'PATCH',
+            `/api/senhas/${id}`,
+            updateData,
+            async () => {
+                await db.senhas.update(id, { ...updateData, dataCadastro: undefined });
+            }
+        );
+    } catch (err) {
+        console.error(err);
+    } finally {
+        verLoad = false;
+    }
+}
+
+async function handleRemoverLote(loteId: string) {
+    if (!confirm('Tem certeza que deseja APAGAR toda a sequência?\n\nIsso removerá todas as senhas geradas para este lote.')) return;
+    
+    verLoad = true;
+    try {
+        await smartRequest(
+            'DELETE',
+            `/api/lotes/${loteId}`,
+            { loteId },
+            async () => {
+                await db.senhas.where('loteId').equals(loteId).delete();
+                await db.lotes.delete(loteId);
+            }
+        );
+    } catch (err) {
+        console.error(err);
+    } finally {
+        verLoad = false;
+    }
+}
 </script>
 
 <Loading show={verLoad} />
@@ -1046,23 +1203,9 @@ let novasSenhas = $state(false)
   {#if novasSenhas}
   
     <form 
-  method="POST" 
-  action="?/gerar" 
-  use:enhance={() => {
-    
-      verLoad = true;
-
-    return async ({ update }) => {
-      // 2. Quando a resposta chegar do servidor, o update() atualiza os dados da página
-      await update();
-      window.location.reload();
-      // 3. Desligamos o loading
-      verLoad = false;
-    };
-    
-  }}
-  class="bg-slate-900/50 backdrop-blur-md p-6 rounded-2xl border border-white/10 shadow-2xl max-w-2xl"
->
+      onsubmit={handleGerar}
+      class="bg-slate-900/50 backdrop-blur-md p-6 rounded-2xl border border-white/10 shadow-2xl max-w-2xl"
+    >
   <div class="flex flex-col sm:flex-row items-end gap-4">
     
     <div class="flex-1 w-full">
@@ -1143,40 +1286,24 @@ let novasSenhas = $state(false)
     <div class="lotes-section">
       <h3>Sequências Geradas</h3>
       <div class="lotes-list">
-        {#each data.lotes as lote}
+        {#each [...displayLotes].sort((a, b) => b.createdAt - a.createdAt || b.inicio - a.inicio) as lote}
           <div class="relative group">
             <button class="lote-link premium-card w-full" onclick={() => selectedLote = lote}>
               <div class="lote-info">
-              <!-- {console.log(data.senhas)} -->
-                <span class="lote-title">Sequência #{lote.inicio} ao #{lote.fim} - <span class="text-white font-bold bg-orange-800 px-2 rounded">{data.senhas.filter(s => s.status !== "disponivel").length} Senhas preenchidas</span></span>
+                <span class="lote-title">Sequência #{lote.inicio} ao #{lote.fim} - <span class="text-white font-bold bg-orange-800 px-2 rounded">{displaySenhas.filter(s => s.loteId === lote.id && s.status !== "disponivel").length} Senhas preenchidas</span></span>
                 <span class="lote-date">Competição: {lote.dataCompeticao}</span>
               </div>
               <span class="lote-arrow mr-10">Ver Senhas →</span>
             </button>
             
-            <form 
-              method="POST" 
-              action="?/removerLote" 
-              use:enhance={() => {
-                if (!confirm(`Tem certeza que deseja APAGAR toda a sequência #${lote.inicio}-${lote.fim}?\n\nIsso removerá todas as senhas geradas para este lote.`)) return;
-                verLoad = true;
-                return async ({ update }) => {
-                  await update();
-                  verLoad = false;
-                };
-              }}
-              class="absolute right-4 top-1/2 -translate-y-1/2 z-10"
-            >
-              <input type="hidden" name="loteId" value={lote.id} />
-              <button 
-                type="submit" 
-                class="p-2 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white rounded-lg transition-all duration-300 opacity-0 group-hover:opacity-100"
+            <button 
+                type="button" 
+                class="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white rounded-lg transition-all duration-300 opacity-0 group-hover:opacity-100"
                 title="Apagar Sequência"
-                onclick={(e) => e.stopPropagation()}
+                onclick={(e) => { e.stopPropagation(); handleRemoverLote(lote.id); }}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
               </button>
-            </form>
           </div>
         {:else}
           <div class="empty-state">Nenhuma sequência gerada ainda.</div>
@@ -1210,7 +1337,7 @@ let novasSenhas = $state(false)
 
     <div class="flex flex-wrap gap-6 p-6 bg-slate-950 min-h-screen justify-between">
   {#each filteredSenhas as senha}
-    {@const puxador = data?.vaqueiros?.find(v => v.id === senha?.puxadorId)}
+    {@const puxador = displayVaqueiros.find(v => v.id === (senha?.vaqueiroPuxadorId || senha?.puxadorId))}
     {@const isMenor = () => {
       if(!puxador?.dataNascimento) return false;
       const [year, month, day] = puxador.dataNascimento.split('-').map(Number);
@@ -1273,33 +1400,14 @@ let novasSenhas = $state(false)
             <div class="flex justify-between items-center mb-3">
               <p class="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-0">Documentação</p>
               
-              <form 
-                method="POST" 
-                action="?/desvincular" 
-                 use:enhance={() => {
-    
-      verLoad = true;
-
-    return async ({ update }) => {
-      // 2. Quando a resposta chegar do servidor, o update() atualiza os dados da página
-      await update();
-      window.location.reload();
-      // 3. Desligamos o loading
-      verLoad = false;
-    };
-    
-  }}
+              <button 
+                type="button" 
+                title="Resetar e Limpar Senha"
+                class="flex items-center justify-center p-1.5 bg-rose-500/10 hover:bg-rose-500 text-rose-500 rounded-lg transition-all duration-300 hover:text-white"
+                onclick={(e) => { e.stopPropagation(); handleDesvincular(senha.id); }}
               >
-                <input type="hidden" name="id" value={senha.id} />
-                <button 
-                  type="submit" 
-                  title="Resetar e Limpar Senha"
-                  class="flex items-center justify-center p-1.5 bg-rose-500/10 hover:bg-rose-500 text-rose-500 rounded-lg transition-all duration-300 hover:text-white"
-                  onclick={(e) => { e.stopPropagation(); if (!confirm('Tem certeza que deseja limpar esta senha e torná-la disponível novamente?')) e.preventDefault(); }}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                </button>
-              </form>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+              </button>
             </div>
             <div class="grid {isMenor() ? 'grid-cols-3' : 'grid-cols-2'} gap-3">
               
@@ -1343,7 +1451,7 @@ let novasSenhas = $state(false)
 
     <!-- <div class="flex flex-wrap gap-6 p-4">
   {#each filteredSenhas as senha}
-    {@const puxador = data?.vaqueiros?.find(v => v.id === senha?.puxadorId)}
+    {@const puxador = displayVaqueiros.find(v => v.id === (senha?.vaqueiroPuxadorId || senha?.puxadorId))}
     {@const isMenor = () =>{
       if(!puxador?.dataNascimento) return false;
       const [year, month, day] = puxador.dataNascimento.split('-').map(Number);
@@ -1455,38 +1563,20 @@ let novasSenhas = $state(false)
     >
       <h2>Senha Nº {selectedSenha.numero}</h2>
       
-      <form method="POST" action="?/vincular" use:enhance={() => {
-        return async ({ result }) => {
-          verLoad = true;
-          
-          if (result.type === 'success') {
-            await invalidateAll();
-            // Find the updated senha in the new data
-            const updated = data.senhas.find(s => s.id === selectedSenha.id);
-            if (updated) {
-              selectedSenha = updated;
-              verLoad = false;
-              // window.location.reload();
-                // Auto print after linking
-                // printVoucher(updated);
-            }
-            showModal = false;
-          }
-        };
-      }} class="link-form">
+      <form onsubmit={handleVincular} class="link-form">
         <input type="hidden" name="id" value={selectedSenha.id} />
         
         <div class="section">
           <h4>Puxador</h4>
           <select name="puxadorId" bind:value={puxadorId} class="premium-input uppercase">
             <option value="">Selecione o Vaqueiro</option>
-            {#each data.vaqueiros.sort((a, b) => a.nomeCompleto.localeCompare(b.nomeCompleto)) as v}
+            {#each [...displayVaqueiros].sort((a, b) => a.nomeCompleto.localeCompare(b.nomeCompleto)) as v}
               <option class="uppercase" value={v.id}>{v.nomeCompleto} ({v.cpf})</option>
             {/each}
           </select>
           <select  name="animalPuxadorId" bind:value={animalPuxadorId} class="premium-input uppercase">
             <option class="uppercase" value="">Selecione o Animal</option>
-            {#each data.animais.sort((a, b) => a.nome.localeCompare(b.nome)) as a}
+            {#each [...displayAnimais].sort((a, b) => a.nome.localeCompare(b.nome)) as a}
               <option value={a.id}>{a.nome} ({a.categoria})</option>
             {/each}
           </select>
@@ -1496,14 +1586,13 @@ let novasSenhas = $state(false)
           <h4>Esteira</h4>
           <select name="esteiraId" bind:value={esteiraId} class="premium-input uppercase">
             <option value="">Selecione o Vaqueiro</option>
-            {#each data.vaqueiros.sort((a, b) => a.nomeCompleto.localeCompare(b.nomeCompleto)) as v}
+            {#each [...displayVaqueiros].sort((a, b) => a.nomeCompleto.localeCompare(b.nomeCompleto)) as v}
               <option class="uppercase" value={v.id}>{v.nomeCompleto} ({v.cpf})</option>
             {/each}
           </select>
           <select name="animalEsteiraId" bind:value={animalEsteiraId} class="premium-input">
             <option value="">Selecione o Animal</option>
-            {#each data.animais.sort((a, b) => a.nome.localeCompare(b.nome)) as a}
-            
+            {#each [...displayAnimais].sort((a, b) => a.nome.localeCompare(b.nome)) as a}
               <option value={a.id}>{a.nome} ({a.categoria})</option>
             {/each}
           </select>

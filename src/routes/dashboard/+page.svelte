@@ -12,7 +12,7 @@
    <div class="recent-actions premium-card">
       <h2>Ações Rápidas</h2>
       <div class="action-buttons">
-          <a href="/dashboard/vaqueiros" class="premium-button">Registrar Vaqueiro</a>
+          <a href="/dashboard/vaqueiros" class="premium-button">Registrar Vaqueiro ou responsável</a>
           <a href="/dashboard/animais" class="premium-button secondary">Registrar Animal</a>
           <a href="/dashboard/senhas" class="premium-button secondary">Gerir Senhas</a>
           <a href="/dashboard/relatorios" class="premium-button tertiary">Emitir Relatórios</a>

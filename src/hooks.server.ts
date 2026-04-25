@@ -4,11 +4,17 @@ import { auth } from '$lib/server/auth';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
 
 const handleBetterAuth: Handle = async ({ event, resolve }) => {
-	const session = await auth.api.getSession({ headers: event.request.headers });
+	try {
+		const session = await auth.api.getSession({ headers: event.request.headers });
 
-	if (session) {
-		event.locals.session = session.session;
-		event.locals.user = session.user;
+		if (session) {
+			event.locals.session = session.session;
+			event.locals.user = session.user;
+		}
+	} catch (e) {
+		console.error('Better Auth session check failed (likely offline):', e);
+		// @ts-ignore - dynamic property
+		event.locals.authError = true;
 	}
 
 	return svelteKitHandler({ event, resolve, auth, building });

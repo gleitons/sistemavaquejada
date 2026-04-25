@@ -2,6 +2,10 @@
   import { invalidateAll } from '$app/navigation';
   import type { PageData } from './$types';
   import Loading from '../../../components/Loading.svelte';
+  import { db } from '$lib/db/local';
+  import { smartRequest } from '$lib/utils/offline';
+  import { liveQuery } from 'dexie';
+  import { onMount } from 'svelte';
   
   let { data, form }: { data: PageData, form: any } = $props();
   
@@ -25,8 +29,28 @@
     }
   }
 
+  let localVaqueiros = $state<any[]>([]);
+  let localAnimais = $state<any[]>([]);
+
+  onMount(() => {
+    const subV = liveQuery(() => db.vaqueiros.toArray()).subscribe(v => {
+      localVaqueiros = v;
+    });
+    const subA = liveQuery(() => db.animais.toArray()).subscribe(a => {
+      localAnimais = a;
+    });
+    return () => {
+      subV.unsubscribe();
+      subA.unsubscribe();
+    };
+  });
+
+  // Use local data if available, fallback to server data
+  let vaqueirosToDisplay = $derived(localVaqueiros.length > 0 ? localVaqueiros : (data.vaqueiros || []));
+  let animaisToDisplay = $derived(localAnimais.length > 0 ? localAnimais : (data.animais || []));
+
   let filteredVaqueiros = $derived(
-    (data.vaqueiros || []).filter(v => 
+    vaqueirosToDisplay.filter(v => 
         v.nomeCompleto.toLowerCase().includes(search.toLowerCase()) || 
         v.cpf.includes(search) || formatCpf(v.cpf).includes(search) ||
         (v.apelido && v.apelido.toLowerCase().includes(search.toLowerCase()))
@@ -113,13 +137,69 @@
   }
 
   async function handleSubmit(e: SubmitEvent) {
+    e.preventDefault();
+    const formData = new FormData(e.target as HTMLFormElement);
+    const dataObj = Object.fromEntries(formData);
+    const animalIds = formData.getAll('animalIds') as string[];
+
     // If minor, validate responsavel is selected
     if (isMenorForm() && !responsavelId) {
-      e.preventDefault();
       alert('Vaqueiro menor de idade: é obrigatório vincular um responsável!');
       return;
     }
+
     loading = true;
+
+    const vaqueiroId = editingVaqueiro?.id || crypto.randomUUID();
+    const vaqueiroData = {
+        ...dataObj,
+        id: vaqueiroId,
+        cpf: (dataObj.cpf as string).replace(/\D/g, ''),
+        responsavelId: responsavelId || null,
+        grauParentesco: grauParentesco === 'outro' ? grauOutro : grauParentesco,
+    };
+
+    try {
+        await smartRequest(
+            editingVaqueiro ? 'PATCH' : 'POST',
+            editingVaqueiro ? `/api/vaqueiros/${editingVaqueiro.id}` : '/api/vaqueiros',
+            { ...vaqueiroData, animalIds },
+            async () => {
+                // Local update
+                if (editingVaqueiro) {
+                    await db.vaqueiros.update(editingVaqueiro.id, vaqueiroData);
+                } else {
+                    await db.vaqueiros.add(vaqueiroData);
+                }
+                closeForm();
+            }
+        );
+    } catch (err) {
+        console.error(err);
+        alert('Erro ao salvar dados localmente.');
+    } finally {
+        loading = false;
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('Excluir este vaqueiro?')) return;
+    
+    loading = true;
+    try {
+        await smartRequest(
+            'DELETE',
+            `/api/vaqueiros/${id}`,
+            { id },
+            async () => {
+                await db.vaqueiros.delete(id);
+            }
+        );
+    } catch (err) {
+        console.error(err);
+    } finally {
+        loading = false;
+    }
   }
 </script>
 
@@ -223,7 +303,7 @@
               <label for="responsavelId">Responsável (Obrigatório para menor) *</label>
               <select id="responsavelId" name="responsavelId" bind:value={responsavelId} required={isMenorForm()} class="premium-input">
                 <option value="">Selecione o Responsável</option>
-                {#each (data.vaqueiros.sort((a, b) => a.nomeCompleto.localeCompare(b.nomeCompleto)) || []) as v}
+                {#each ([...data.vaqueiros].sort((a, b) => a.nomeCompleto.localeCompare(b.nomeCompleto)) || []) as v}
                   {#if v.id !== editingVaqueiro?.id}
                     <option class="uppercase" value={v.id}>{v.nomeCompleto} ({formatCpf(v.cpf)})</option>
                   {/if}
@@ -306,6 +386,7 @@
   {/if}
 
   <div class="list-section premium-card">
+  <p class="text-white text-lg  font-bold">{data.vaqueiros.length} Cadastrados</p>
     <div class="search-bar">
       <input type="text" bind:value={search} placeholder="Buscar por nome, CPF ou apelido..." class="premium-input" />
     </div>
@@ -313,31 +394,36 @@
     <table class="premium-table">
       <thead>
         <tr>
-          <th>CPF</th>
-          <th>Nome / Apelido</th>
-          <th>Cidade / Comunidade</th>
+         <th>Nº</th>
+         <th>Nome / Apelido</th>
+         <th>Idade</th>
+         <th>CPF</th>
+          <th>Comunidade / Cidade</th>
           <th>Ações</th>
         </tr>
       </thead>
       <tbody>
-        {#each filteredVaqueiros.sort((a, b) => a.nomeCompleto.localeCompare(b.nomeCompleto)) as v, index}
+        {#each [...filteredVaqueiros].sort((a, b) => a.nomeCompleto.localeCompare(b.nomeCompleto)) as v, index}
         {@const idade = calcularIdade(v.dataNascimento)}  
           <tr class="{index % 2 === 0 ? 'bg-yellow-900' : ''}">
-            <td>{formatCpf(v.cpf)}</td>
+            <td>{index + 1}</td>
             <td>
               <div class="name-cell">
-                <span class="uppercase main-name">{v.nomeCompleto} - <span class="text-white bg-black px-2 rounded-lg">{idade} anos</span></span>
+                <span class="uppercase main-name">{v.nomeCompleto}</span>
                 {#if v.apelido}<span class="uppercase nick">"{v.apelido || v.nomeCompleto}" </span>{/if}
               </div>
             </td>
-            <td class="uppercase "><p class="truncate  w-48 hover:overflow-visible cursor-pointer">{v.cidade || '-'} / {v.comunidade || '-'}</p></td>
+            <td>
+              <div class="name-cell">
+                <span class="uppercase main-name">{idade} anos</span>
+              </div>
+            </td>
+            <td>{formatCpf(v.cpf)}</td>
+            <td class="uppercase "><p class="truncate  w-48 hover:overflow-visible cursor-pointer">{v.comunidade  || ''} { v.comunidade ? " / " : ""} {v.cidade || '-'}</p></td>
             <td>
               <div class="row-actions">
                 <button class="edit-btn" onclick={() => startEdit(v)}>✏️</button>
-                <form method="POST" action="?/delete" onsubmit={() => confirm('Excluir este vaqueiro?')}>
-                  <input type="hidden" name="id" value={v.id} />
-                  <button type="submit" class="delete-btn">🗑️</button>
-                </form>
+                <button type="button" class="delete-btn" onclick={() => handleDelete(v.id)}>🗑️</button>
               </div>
             </td>
           </tr>

@@ -1,16 +1,41 @@
 <script lang="ts">
+  import Loading from '../../../components/Loading.svelte';
+  import { db } from '$lib/db/local';
+  import { smartRequest } from '$lib/utils/offline';
+  import { liveQuery } from 'dexie';
+  import { onMount } from 'svelte';
+
   let { data, form } = $props();
   let showForm = $state(false);
   let editingAnimal = $state<any>(null);
   let search = $state("");
-  import Loading from '../../../components/Loading.svelte';
   let loading = $state(false);
   let selectedVaqueiros = $state<string[]>([]);
 
+  let localVaqueiros = $state<any[]>([]);
+  let localAnimais = $state<any[]>([]);
+
+  onMount(() => {
+    const subV = liveQuery(() => db.vaqueiros.toArray()).subscribe(v => {
+      localVaqueiros = v;
+    });
+    const subA = liveQuery(() => db.animais.toArray()).subscribe(a => {
+      localAnimais = a;
+    });
+    return () => {
+      subV.unsubscribe();
+      subA.unsubscribe();
+    };
+  });
+
+  // Use local data if available, fallback to server data
+  let vaqueirosToDisplay = $derived(localVaqueiros.length > 0 ? localVaqueiros : (data.vaqueiros || []));
+  let animaisToDisplay = $derived(localAnimais.length > 0 ? localAnimais : (data.animais || []));
+
   let filteredAnimais = $derived(
-    (data.animais || []).filter(a => 
+    animaisToDisplay.filter(a => 
         a.nome.toLowerCase().includes(search.toLowerCase()) || 
-        (a.vaqueiros && a.vaqueiros.some(v => v.nomeCompleto.toLowerCase().includes(search.toLowerCase())))
+        (a.vaqueiros && a.vaqueiros.some((v: any) => v.nomeCompleto.toLowerCase().includes(search.toLowerCase())))
     )
   );
 
@@ -36,7 +61,62 @@
   }
 
   async function handleSubmit(e: SubmitEvent) {
+    e.preventDefault();
+    const formData = new FormData(e.target as HTMLFormElement);
+    const dataObj = Object.fromEntries(formData);
+    const vaqueiroIds = formData.getAll('vaqueiroIds') as string[];
+
     loading = true;
+
+    const animalId = editingAnimal?.id || crypto.randomUUID();
+    const animalData = {
+        ...dataObj,
+        id: animalId,
+        peso: dataObj.peso ? parseFloat(dataObj.peso as string) : null,
+        valorReal: dataObj.valorReal ? parseFloat(dataObj.valorReal as string) : null,
+        vaqueiroId: vaqueiroIds[0] || null
+    };
+
+    try {
+        await smartRequest(
+            editingAnimal ? 'PATCH' : 'POST',
+            editingAnimal ? `/api/animais/${editingAnimal.id}` : '/api/animais',
+            { ...animalData, vaqueiroIds },
+            async () => {
+                if (editingAnimal) {
+                    await db.animais.update(editingAnimal.id, animalData);
+                } else {
+                    await db.animais.add(animalData);
+                }
+                closeForm();
+            }
+        );
+    } catch (err) {
+        console.error(err);
+        alert('Erro ao salvar animal localmente.');
+    } finally {
+        loading = false;
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('Excluir este animal?')) return;
+    
+    loading = true;
+    try {
+        await smartRequest(
+            'DELETE',
+            `/api/animais/${id}`,
+            { id },
+            async () => {
+                await db.animais.delete(id);
+            }
+        );
+    } catch (err) {
+        console.error(err);
+    } finally {
+        loading = false;
+    }
   }
 </script>
 
@@ -163,6 +243,7 @@
   {/if}
 
   <div class="list-section premium-card">
+    <p class="text-white text-lg  font-bold">{data.animais.length} Cadastrados</p>
     <div class="search-bar">
       <input type="text" bind:value={search} placeholder="Buscar por nome ou vaqueiro..." class="premium-input" />
     </div>
@@ -170,6 +251,7 @@
     <table class="premium-table">
       <thead>
         <tr>
+         <th>Nº</th>
           <th>Nome</th>
           <th>Raça / Cor / Sexo</th>
           <th>Vaqueiro</th>
@@ -177,8 +259,9 @@
         </tr>
       </thead>
       <tbody>
-        {#each filteredAnimais.sort((a, b) => a.nome.localeCompare(b.nome)) as a, index}
+        {#each [...filteredAnimais].sort((a, b) => a.nome.localeCompare(b.nome)) as a, index}
           <tr class="{index % 2 === 0 ? 'bg-gray-800' : ''}">
+            <td>{index + 1}</td>
             <td>
               <div class="name-cell">
                 <span class="main-name uppercase  ">{a.nome}</span>
@@ -198,10 +281,7 @@
             <td>
               <div class="row-actions">
                 <button class="edit-btn" onclick={() => startEdit(a)}>✏️</button>
-                <form method="POST" action="?/delete" onsubmit={() => confirm('Excluir este animal?')}>
-                  <input type="hidden" name="id" value={a.id} />
-                  <button type="submit" class="delete-btn">🗑️</button>
-                </form>
+                <button type="button" class="delete-btn" onclick={() => handleDelete(a.id)}>🗑️</button>
               </div>
             </td>
           </tr>

@@ -4,32 +4,42 @@ import { fail } from '@sveltejs/kit';
 import { eq, asc, desc } from 'drizzle-orm';
 
 export const load = async () => {
-    const batches = await db.select().from(lotes).orderBy(desc(lotes.createdAt));
-    
-    const list = await db.select({
-        id: senhas.id,
-        numero: senhas.numero,
-        status: senhas.status,
-        dataCompeticao: senhas.dataCompeticao,
-        dataCadastro: senhas.dataCadastro,
-        loteId: senhas.loteId,
-        puxadorId: senhas.vaqueiroPuxadorId,
-        esteiraId: senhas.vaqueiroEsteiraId,
-        animalPuxadorId: senhas.animalPuxadorId,
-        animalEsteiraId: senhas.animalEsteiraId
-    })
-    .from(senhas)
-    .orderBy(asc(senhas.numero));
+    try {
+        const batches = await db.select().from(lotes).orderBy(desc(lotes.createdAt));
+        
+        const list = await db.select({
+            id: senhas.id,
+            numero: senhas.numero,
+            status: senhas.status,
+            dataCompeticao: senhas.dataCompeticao,
+            dataCadastro: senhas.dataCadastro,
+            loteId: senhas.loteId,
+            vaqueiroPuxadorId: senhas.vaqueiroPuxadorId,
+            vaqueiroEsteiraId: senhas.vaqueiroEsteiraId,
+            animalPuxadorId: senhas.animalPuxadorId,
+            animalEsteiraId: senhas.animalEsteiraId
+        })
+        .from(senhas)
+        .orderBy(asc(senhas.numero));
 
-    const vaqueirosList = await db.select().from(vaqueiros).orderBy(vaqueiros.nomeCompleto);
-    const animaisList = await db.select().from(animais).orderBy(animais.nome);
+        const vaqueirosList = await db.select().from(vaqueiros).orderBy(vaqueiros.nomeCompleto);
+        const animaisList = await db.select().from(animais).orderBy(animais.nome);
 
-    return { 
-        senhas: list || [], 
-        lotes: batches || [],
-        vaqueiros: vaqueirosList || [], 
-        animais: animaisList || [] 
-    };
+        return { 
+            senhas: list || [], 
+            lotes: batches || [],
+            vaqueiros: vaqueirosList || [], 
+            animais: animaisList || [] 
+        };
+    } catch (e: any) {
+        console.error('SERVER LOAD ERROR (senhas):', e);
+        return {
+            senhas: [],
+            lotes: [],
+            vaqueiros: [],
+            animais: []
+        };
+    }
 };
 
 export const actions = {

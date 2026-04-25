@@ -1,9 +1,12 @@
 <script lang="ts">
   import './app.css';
   import { onMount } from 'svelte';
+  import SyncManager from '$lib/components/SyncManager.svelte';
 
   let { children } = $props();
 </script>
+
+<SyncManager />
 
 <svelte:head>
   <title>Sistema Vaquejada | Gestão Premium</title>
