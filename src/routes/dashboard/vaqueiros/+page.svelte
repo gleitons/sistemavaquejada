@@ -386,7 +386,10 @@
   {/if}
 
   <div class="list-section premium-card">
-  <p class="text-white text-lg  font-bold">{data.vaqueiros.length} Cadastrados</p>
+  <div class="flex items-center justify-between gap-4">
+    <p class="text-white text-lg ">{data.vaqueiros.length} Cadastrados</p>
+     <p class="text-white text-lg ">{data.vaqueiros.filter(v => v.genero === "Masculino").length} Homens e {data.vaqueiros.filter(v => v.genero === "Feminino").length} Mulheres</p>
+  </div>
     <div class="search-bar">
       <input type="text" bind:value={search} placeholder="Buscar por nome, CPF ou apelido..." class="premium-input" />
     </div>
@@ -405,17 +408,19 @@
       <tbody>
         {#each [...filteredVaqueiros].sort((a, b) => a.nomeCompleto.localeCompare(b.nomeCompleto)) as v, index}
         {@const idade = calcularIdade(v.dataNascimento)}  
-          <tr class="{index % 2 === 0 ? 'bg-yellow-900' : ''}">
-            <td>{index + 1}</td>
-            <td>
+          <tr class="{index % 2 === 0 ? 'bg-gray-800' : ''}">
+            <td >{index + 1} </td>
+            <td class="flex items-center justify-between gap-4">
               <div class="name-cell">
                 <span class="uppercase main-name">{v.nomeCompleto}</span>
                 {#if v.apelido}<span class="uppercase nick">"{v.apelido || v.nomeCompleto}" </span>{/if}
               </div>
+              {v.genero === "Masculino" ? "♂️" : "♀️"} 
+              <!-- <img class="h-12" src={v.genero === "Masculino" ? "/vaqueiro.jpg" : "/vaqueira.jpg"} alt=""> -->
             </td>
             <td>
               <div class="name-cell">
-                <span class="uppercase main-name">{idade} anos</span>
+                <span class="uppercase main-name">{idade}</span>
               </div>
             </td>
             <td>{formatCpf(v.cpf)} </td>

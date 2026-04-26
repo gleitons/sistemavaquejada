@@ -1,10 +1,31 @@
 <script lang="ts">
   import { authClient } from "$lib/auth-client";
   import { goto } from "$app/navigation";
-  import { page } from "$app/state";
+  import { page, navigating } from "$app/state";
+  // import { navigating } from "$app/stores";
+  import Load from "../../components/Load.svelte";
 
   let { children } = $props();
   let sidebarOpen = $state(true);
+  
+  // Variável para controlar quando o loading vai aparecer
+  let showLoading = $state(false);
+  let timeoutId: ReturnType<typeof setTimeout>;
+
+  // O $effect vai observar toda vez que o "navigating" mudar
+  $effect(() => {
+    if (navigating) {
+      // Se começou a navegar, aguarda um tempo antes de mostrar o Load
+      // Exemplo: 500ms (meio segundo). Se quiser 2 segundos, troque para 2000
+      timeoutId = setTimeout(() => {
+        showLoading = false;
+      }, 0); 
+    } else {
+      // Se terminou de carregar (navigating virou null), cancela o timer e esconde
+      clearTimeout(timeoutId);
+      showLoading = true;
+    }
+  });
 
   async function handleLogout() {
     await authClient.signOut();
@@ -19,6 +40,9 @@
     { name: "Relatórios", path: "/dashboard/relatorios", icon: "📋" },
   ];
 </script>
+
+<!-- Renderiza o componente de carregamento passando a nossa variável controlada -->
+<Load show={showLoading} />
 
 <div class="dashboard-container">
   <!-- Sidebar -->

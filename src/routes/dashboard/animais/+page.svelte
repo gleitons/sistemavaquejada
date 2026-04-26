@@ -262,11 +262,12 @@
         {#each [...filteredAnimais].sort((a, b) => a.nome.localeCompare(b.nome)) as a, index}
           <tr class="{index % 2 === 0 ? 'bg-gray-800' : ''}">
             <td>{index + 1}</td>
-            <td>
+            <td class="flex gap-2 justify-between items-center">
               <div class="name-cell">
                 <span class="main-name uppercase  ">{a.nome}</span>
                 <span class="nick">{a.categoria}</span>
               </div>
+                {a.sexo === "Macho" ? "♂️" : "♀️"} 
             </td>
             <td>{a.raca || '-'} / {a.cor || '-'} / {a.sexo?.slice(0, 1).toUpperCase() || '-'}</td>
             <td>
